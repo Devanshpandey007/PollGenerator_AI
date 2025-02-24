@@ -1,0 +1,19 @@
+googleProvider:
+  service: google-trends
+  base_api_url: https://trends.google.com/trends
+  trending_searches: /trendingsearches
+  time_frame: /daily
+  query_params: ?geo=
+  region: NG
+
+newsProvider:
+  - service: newsapi
+    base_api_url: https://newsapi.org/v2
+    top_headlines: /top-headlines
+    query_params: ?country=
+    region: NG
+  - service: asknews
+    base_api_url: https://asknews.org
+    top_headlines: /top-headlines
+    query_params: ?country=
+    region: NG
