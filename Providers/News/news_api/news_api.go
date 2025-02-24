@@ -2,17 +2,17 @@ package news_api
 
 import (
 	Adapters "Providers/Adapters/News"
+	"Providers/Configs"
 	"Providers/Providers/News"
 	"bytes"
 	"context"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/spf13/viper"
 )
 
 // NewsApiProvider implement the base provider interface
 type NewsApiProvider struct {
 	News.IProviderNews
-	Viper   *viper.Viper
+	Config  *Configs.Config
 	Adapter *Adapters.NewsAdapter
 }
 
@@ -20,11 +20,10 @@ type NewsApiProvider struct {
 var _ News.IProviderNews = (*NewsApiProvider)(nil)
 
 // NewProvider initializes and registers a NewsApiProvider instance.
-func NewProvider(baseProvider News.IProviderNews, viper *viper.Viper, news *Adapters.NewsAdapter) *NewsApiProvider {
+func NewProvider(config *Configs.Config, news *Adapters.NewsAdapter) *NewsApiProvider {
 	provider := &NewsApiProvider{
-		IProviderNews: baseProvider,
-		Viper:         viper,
-		Adapter:       news,
+		Config:  config,
+		Adapter: news,
 	}
 	News.RegisterProvider("Providers.NewsApiProvider", provider)
 	return provider

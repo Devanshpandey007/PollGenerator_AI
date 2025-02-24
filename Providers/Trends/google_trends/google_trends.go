@@ -8,14 +8,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/spf13/viper"
 	"strings"
 )
 
 // GoogleTrendsProvider implement the base provider interface
 type GoogleTrendsProvider struct {
 	Trends.IProviderTrends
-	Viper   *viper.Viper
+	Config  *Configs.Config
 	Adapter *Adapters.TrendsAdapter
 }
 
@@ -23,11 +22,10 @@ type GoogleTrendsProvider struct {
 var _ Trends.IProviderTrends = (*GoogleTrendsProvider)(nil)
 
 // NewProvider initializes and registers a GoogleTrendsProvider instance.
-func NewProvider(baseProvider Trends.IProviderTrends, viper *viper.Viper, trends *Adapters.TrendsAdapter) *GoogleTrendsProvider {
+func NewProvider(config *Configs.Config, trends *Adapters.TrendsAdapter) *GoogleTrendsProvider {
 	provider := &GoogleTrendsProvider{
-		IProviderTrends: baseProvider,
-		Viper:           viper,
-		Adapter:         trends,
+		Config:  config,
+		Adapter: trends,
 	}
 	Trends.RegisterProvider("Providers.GoogleTrendsProvider", provider)
 	return provider
