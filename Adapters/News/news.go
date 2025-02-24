@@ -3,10 +3,12 @@ package Adapters
 import (
 	Api "Providers/Clients/Http"
 	"Providers/Clients/Metric"
+	"Providers/Common"
 	"Providers/Configs"
 	"context"
 	"fmt"
 	"io"
+	"time"
 )
 
 type NewsAdapter struct {
@@ -35,10 +37,7 @@ func NewNewsAdapter(httpClient Api.ApiClientInterface, metricClient Metric.Metri
 // @param config ProviderConfigs.ProviderConfig
 //
 // @return []byte, error
-func (na *NewsAdapter) fetchNews(ctx context.Context, config Configs.ProviderConfig) ([]byte, error) {
-	url := buildNewsUrl(config)
-	headers := map[string]string{"Authorization": fmt.Sprintf("Bearer %s", config.APIKey)}
-
+func (na *NewsAdapter) fetchNews(ctx context.Context, url string, headers map[string]string, config Configs.ProviderConfig) ([]byte, error) {
 	resp, err := na.HttpClient.MakeGetRequest(ctx, url, headers)
 	if err != nil {
 		// Log error and send metric
@@ -65,5 +64,46 @@ func (na *NewsAdapter) fetchNews(ctx context.Context, config Configs.ProviderCon
 }
 
 func buildNewsUrl(config Configs.ProviderConfig) string {
-
+	return fmt.Sprintf("%s/news", config.BaseURL)
 }
+
+// SearchNews fetches news data from the API for a given topic.
+// This function fetches news data from the API for a given topic and returns the response.
+//
+// @param ctx context.Context
+// @param config ProviderConfigs.ProviderConfig
+// @param responseReader ResponseReaderFunc
+// @param topic string
+//
+// @return []byte, error
+func (na *NewsAdapter) SearchNews(ctx context.Context, config Configs.ProviderConfig, topic string, responseReader func(res []byte) ([]string, error)) ([]string, error) {
+	startTime := time.Now()
+	url := buildNewsUrl(config)
+	headers := map[string]string{"Authorization": fmt.Sprintf("Bearer %s", config.APIKey)}
+
+	resp, err := na.fetchNews(ctx, url, headers, config)
+	if err != nil {
+		return nil, err
+	}
+
+	headlines, err := responseReader(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	duration := time.Since(startTime).Seconds()
+	na.MetricClient.SendMetric("FetchTrendsDuration", duration, "Seconds", nil)
+	return headlines, nil
+}
+
+//// ResponseReaderFunc is a function that reads the response and returns the data.
+//func ResponseReaderFunc(res []byte) ([]string, error) {
+//	// Extract news titles
+//	var news []string
+//	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(res))
+//	doc.Find("title").Each(func(i int, s *goquery.Selection) {
+//		news = append(news, s.Text())
+//	})
+//
+//	return news, nil
+//}

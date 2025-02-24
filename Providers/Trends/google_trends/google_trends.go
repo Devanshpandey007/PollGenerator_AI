@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// implement the base provider interface
+// GoogleTrendsProvider implement the base provider interface
 type GoogleTrendsProvider struct {
 	Trends.IProviderTrends
 	Viper   *viper.Viper

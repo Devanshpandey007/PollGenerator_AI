@@ -9,11 +9,5 @@ googleProvider:
 newsProvider:
   - service: newsapi
     base_api_url: https://newsapi.org/v2
-    top_headlines: /top-headlines
-    query_params: ?country=
-    region: NG
-  - service: asknews
-    base_api_url: https://asknews.org
-    top_headlines: /top-headlines
-    query_params: ?country=
-    region: NG
+    source: /everything
+    query_params: ?q=

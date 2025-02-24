@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Poll Service for P2P Bets
+
+
+Parameters:
+  # General
+  RootStackName:
+    Type: String
+    Description: Name of the root stack
+  EnvironmentName:
+    Type: String
+    Description: Name of the target environment (e.g., dev or prod)
+
+
+Resources:
+  # IAM Role for Lambda Functions
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'PollServiceLambdaRole-${EnvironmentName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+      Policies:
+        - PolicyName: SharedPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Shared permissions for both Lambda and EC2
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PartyDynamoTableName}'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PartyDynamoTableName}/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${EventDynamoTableName}'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${EnvironmentName}/odds/api-*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${RootStackName}-PollService-*'
+              # Lambda-specific permissions
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+
+  PollServiceCron:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt LambdaExecutionRole.Arn
+      FunctionName: !Sub '${RootStackName}-PollServiceCron-${EnvironmentName}'
+      Code:
+        ImageUri: !Sub '864899853095.dkr.ecr.${AWS::Region}.amazonaws.com/p2p-bets-image-${EnvironmentName}:cron_pollservice_${EnvironmentName}_${CronImageTag}'
+      PackageType: Image
+      Timeout: 90
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds:
+          - !Ref PrivateSubnetId
+      Environment:
+        Variables:
+          ENV: !Ref EnvironmentName
+          REGION: !Ref AWS::Region
+          EVENT_DYNAMO_TABLE_NAME: !Ref EventDynamoTableName
+          PARTY_DYNAMO_TABLE_NAME: !Ref PartyDynamoTableName
+          DYNAMO_ENDPOINT: !Ref DynamoEndpoint
+          ARN_SNS_TOPIC: !Ref ARNSnsTopic
+          CACHE_TIME: "1800"
+
+  # EventBridge Rule to Trigger Lambda Every Thursday
+  PollServiceCronSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${RootStackName}-PollServiceCronSchedule-${EnvironmentName}'
+      ScheduleExpression: 'cron(0 12 ? * 5 *)'  # Runs every Thursday at 12:00 UTC
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt PollServiceCron.Arn
+          Id: "PollServiceCronTarget"
+
+  # Permission for EventBridge to Invoke Lambda
+  LambdaInvokePermissionForPollServiceCron:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PollServiceCron
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt PollServiceCronSchedule.Arn
