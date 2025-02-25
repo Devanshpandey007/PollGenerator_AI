@@ -6,7 +6,12 @@ import (
 	"Providers/Configs"
 	"Providers/Providers/LLM"
 	"context"
+	"fmt"
+	"github.com/stretchr/testify/mock"
+	"io"
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -21,7 +26,33 @@ func TestNewProvider(t *testing.T) {
 		args args
 		want *OpenAIProvider
 	}{
-		// TODO: Add test cases.
+		{
+			name: "TestNewProvider_success",
+			args: args{
+				config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "OpenAIProvider",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+				httpClient:   new(Api.MockApiClient),
+				metricClient: new(Metric.MockMetricClient),
+			},
+			want: &OpenAIProvider{
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "OpenAIProvider",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+				HttpClient:   new(Api.MockApiClient),
+				MetricClient: new(Metric.MockMetricClient),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -85,7 +116,22 @@ func TestOpenAIProvider_GetConfig(t *testing.T) {
 		fields fields
 		want   Configs.ProviderConfig
 	}{
-		// TODO: Add test cases.
+		{
+			name: "TestGetConfig_success",
+			fields: fields{
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "OpenAIProvider",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+			},
+			want: Configs.ProviderConfig{
+				ProviderName: "OpenAIProvider",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -149,7 +195,60 @@ func TestOpenAIProvider_makePromptRequest(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "TestOpenAIProvider_makePromptRequest_success",
+			fields: fields{
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "OpenAIProvider",
+						BaseURL:      "https://api.openai.com/v1",
+						Endpoint:     "chat/completions",
+						Model:        "gpt-3.5-turbo",
+						APIKey:       "key",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+						MaxTokens:   "100",
+						Temperature: "0.7",
+					},
+				},
+				HttpClient:   new(Api.MockApiClient),
+				MetricClient: new(Metric.MockMetricClient),
+			},
+			args: args{
+				ctx:    context.Background(),
+				prompt: "prompt",
+			},
+			want:    "response",
+			wantErr: false,
+		},
+		{
+			name: "TestOpenAIProvider_makePromptRequest_error",
+			fields: fields{
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "OpenAIProvider",
+						BaseURL:      "https://api.openai.com/v1",
+						Endpoint:     "chat/completions",
+						Model:        "gpt-3.5-turbo",
+						APIKey:       "key",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+						MaxTokens:   "100",
+						Temperature: "0.7",
+					},
+				},
+				HttpClient:   new(Api.MockApiClient),
+				MetricClient: new(Metric.MockMetricClient),
+			},
+			args: args{
+				ctx:    context.Background(),
+				prompt: "prompt",
+			},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,6 +257,23 @@ func TestOpenAIProvider_makePromptRequest(t *testing.T) {
 				Config:       tt.fields.Config,
 				HttpClient:   tt.fields.HttpClient,
 				MetricClient: tt.fields.MetricClient,
+			}
+			tt.fields.MetricClient.(*Metric.MockMetricClient).On("SendMetric", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			if tt.wantErr {
+				tt.fields.HttpClient.(*Api.MockApiClient).On("MakePostRequest", tt.args.ctx, "https://api.openai.com/v1/chat/completions", map[string]string{
+					"Authorization": "Bearer key",
+					"Content-Type":  "application/json",
+				}, mock.Anything).Return(
+					nil, fmt.Errorf("error"))
+			} else {
+				tt.fields.HttpClient.(*Api.MockApiClient).On("MakePostRequest", tt.args.ctx, "https://api.openai.com/v1/chat/completions", map[string]string{
+					"Authorization": "Bearer key",
+					"Content-Type":  "application/json",
+				}, mock.Anything).Return(
+					&http.Response{
+						Body:       io.NopCloser(strings.NewReader(`response`)),
+						StatusCode: 200,
+					}, nil)
 			}
 			got, err := p.makePromptRequest(tt.args.ctx, tt.args.prompt)
 			if (err != nil) != tt.wantErr {

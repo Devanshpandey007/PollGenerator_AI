@@ -12,9 +12,9 @@ import (
 	"Providers/Providers/News/news_api"
 	"Providers/Providers/Trends/google_trends"
 	"context"
+	"encoding/json"
 	"github.com/aws/aws-lambda-go/lambda"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -81,10 +81,20 @@ func handleRequest(ctx context.Context) {
 			})
 			continue
 		}
+		Common.LogInfo("News titles", map[string]interface{}{
+			"trend":      trend,
+			"newsTitles": newsTitles,
+		})
 
 		// Create a context summary by joining article titles.
-		contextSummary := strings.Join(newsTitles, " ")
-		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, trend, contextSummary)
+		contextSummary, err := json.Marshal(newsTitles)
+		if err != nil {
+			Common.LogError("Failed to marshal news titles", err, map[string]interface{}{
+				"newsTitles": newsTitles,
+			})
+			continue
+		}
+		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, trend, string(contextSummary))
 		if err != nil {
 			Common.LogError("Failed to generate poll questions", err, map[string]interface{}{
 				"trend":          trend,
@@ -96,7 +106,6 @@ func handleRequest(ctx context.Context) {
 			"trend":         trend,
 			"pollQuestions": pollQuestions,
 		})
-
 	}
 }
 

@@ -6,6 +6,12 @@ googleProvider:
   region: NG
 
 newsProvider:
-  - service: newsapi
-    baseUrl: https://newsapi.org/v2
-    endpoint: everything
+  service: newsapi
+  baseUrl: https://newsapi.org/v2
+  endpoint: everything
+
+openApi:
+  service: openapi
+  baseUrl: https://api.openai.com/v1
+  endpoint: chat/completions
+  model: gpt-3.5-turbo
