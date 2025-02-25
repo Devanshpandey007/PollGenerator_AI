@@ -11,7 +11,7 @@ import (
 
 // Embed all YAML files matching either config.*.yaml or provider.*.yaml,
 //
-//go:embed provider.*.yaml
+//go:embed provider.*.yaml config.*.yaml
 var embeddedFiles embed.FS
 
 func NewViper(environment string) (*viper.Viper, error) {
@@ -22,8 +22,8 @@ func NewViper(environment string) (*viper.Viper, error) {
 	// We'll load multiple files, in a specified order, merging them as we go.
 	// 1) provider.<env>.yaml
 	filesToLoad := []string{
-		//"config.yaml",
-		//fmt.Sprintf("config.%s.yaml", environment),
+		"config.yaml",
+		fmt.Sprintf("config.%s.yaml", environment),
 		"provider.yaml",
 		fmt.Sprintf("provider.%s.yaml", environment),
 	}

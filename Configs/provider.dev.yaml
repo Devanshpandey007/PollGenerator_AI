@@ -1,4 +1,5 @@
 googleProvider:
+  providerName: google
   service: google-trends
   baseUrl: https://trends.google.com/trends
   endpoint: trendingsearches
@@ -6,12 +7,16 @@ googleProvider:
   region: NG
 
 newsProvider:
+  providerName: newsApi
   service: newsapi
   baseUrl: https://newsapi.org/v2
   endpoint: everything
+  secretPath: news/api
 
-openApi:
+openAIProvider:
+  providerName: openAI
   service: openapi
   baseUrl: https://api.openai.com/v1
   endpoint: chat/completions
   model: gpt-3.5-turbo
+  SecretPath: openai/api

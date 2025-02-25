@@ -1,0 +1,6 @@
+DefaultConfig:
+  MaxTokens: "100"
+  Temperature: "0.7"
+  Region: "us-east-1"
+  S3Bucket: "my-bucket"
+  DefaultS3Timeout: 10
