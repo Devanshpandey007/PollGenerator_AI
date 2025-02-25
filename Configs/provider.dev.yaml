@@ -1,12 +1,11 @@
 googleProvider:
   service: google-trends
-  base_api_url: https://trends.google.com/trends
-  trending_searches: /trendingsearches
-  time_frame: /daily
-  query_params: ?geo=
+  baseUrl: https://trends.google.com/trends
+  endpoint: trendingsearches
+  timeRange: daily
   region: NG
 
 newsProvider:
   - service: newsapi
     baseUrl: https://newsapi.org/v2
-    endpoint: /everything
+    endpoint: everything

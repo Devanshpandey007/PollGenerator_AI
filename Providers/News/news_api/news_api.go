@@ -32,7 +32,7 @@ func NewProvider(config *Configs.Config, news *Adapters.NewsAdapter) *NewsApiPro
 // SearchNews fetches news data from the API
 func (p *NewsApiProvider) SearchNews(ctx context.Context, query string) ([]string, error) {
 	// We should use the newsAdapter to get the news
-	news, err := p.Adapter.SearchNews(ctx, p.GetConfig(), query, p.ResponseReaderFunc)
+	news, err := p.Adapter.SearchNews(ctx, *p.Config, query, p.ResponseReaderFunc)
 	if err != nil {
 		return nil, err
 	}

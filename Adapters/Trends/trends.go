@@ -43,9 +43,8 @@ func NewTrendsAdapter(httpClient Api.ApiClientInterface, metricClient Metric.Met
 // @return []byte, error
 func (ta *TrendsAdapter) fetchTrends(ctx context.Context, config Configs.ProviderConfig) ([]byte, error) {
 	url := buildTrendsUrl(config)
-	headers := map[string]string{"Authorization": fmt.Sprintf("Bearer %s", config.APIKey)}
 
-	resp, err := ta.HttpClient.MakeGetRequest(ctx, url, headers)
+	resp, err := ta.HttpClient.MakeGetRequest(ctx, url, map[string]string{})
 	if err != nil {
 		// Log error and send metric
 		Common.LogError("Error fetching trends", err, nil)
@@ -69,7 +68,7 @@ func (ta *TrendsAdapter) fetchTrends(ctx context.Context, config Configs.Provide
 }
 
 func buildTrendsUrl(config Configs.ProviderConfig) string {
-	return fmt.Sprintf("%s%s%s%s%s", config.BaseURL, config.Endpoint, config.TimeRange, config.QueryParams, config.Region)
+	return fmt.Sprintf("%s/%s/%s?geo=%s", config.BaseURL, config.Endpoint, config.TimeRange, config.Region)
 }
 
 // GetTrends fetches trends data from the API
@@ -101,6 +100,7 @@ func (ta *TrendsAdapter) GetTrends(ctx context.Context, providerConfigs []Config
 		// Log errors and send metric
 		Common.LogError("Error fetching trends", fmt.Errorf("failed to fetch trends from all providers: %v", allErrors), nil)
 		ta.MetricClient.SendMetric("FetchTrendsError", 1, "Count", nil)
+		return nil, fmt.Errorf("failed to fetch trends from all providers: %v", allErrors)
 	}
 
 	duration := time.Since(startTime).Seconds()

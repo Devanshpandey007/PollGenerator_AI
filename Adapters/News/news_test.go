@@ -123,11 +123,10 @@ func TestNewsAdapter_SearchNews(t *testing.T) {
 				HttpClient:   tt.fields.HttpClient,
 				MetricClient: tt.fields.MetricClient,
 			}
+			tt.fields.MetricClient.(*Metric.MockMetricClient).On("SendMetric", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			if tt.wantErr {
-				tt.fields.MetricClient.(*Metric.MockMetricClient).On("SendMetric", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				tt.fields.HttpClient.(*Api.MockApiClient).On("MakeGetRequest", tt.args.ctx, "https://newsapi.org/v2/everything?q=test&from=2025-01-24&sortBy=publishedAt&apiKey=test_api_key", map[string]string{}).Return(nil, fmt.Errorf("error"))
 			} else {
-				tt.fields.MetricClient.(*Metric.MockMetricClient).On("SendMetric", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				tt.fields.HttpClient.(*Api.MockApiClient).On("MakeGetRequest", tt.args.ctx, "https://newsapi.org/v2/everything?q=test&from=2025-01-24&sortBy=publishedAt&apiKey=test_api_key", map[string]string{}).Return(&http.Response{
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(strings.NewReader("test")),
