@@ -63,8 +63,8 @@ func (na *NewsAdapter) fetchNews(ctx context.Context, url string, headers map[st
 	return body, nil
 }
 
-func buildNewsUrl(config Configs.ProviderConfig) string {
-	return fmt.Sprintf("%s/news", config.BaseURL)
+func buildNewsUrl(config Configs.Config, topic string) string {
+	return fmt.Sprintf("%s/%s?q=%s&from=%s&sortBy=publishedAt&apiKey=%s", config.ProviderConfig.BaseURL, config.ProviderConfig.Endpoint, topic, config.DefaultConfig.SearchStartDate, config.ProviderConfig.APIKey)
 }
 
 // SearchNews fetches news data from the API for a given topic.
@@ -76,12 +76,10 @@ func buildNewsUrl(config Configs.ProviderConfig) string {
 // @param topic string
 //
 // @return []byte, error
-func (na *NewsAdapter) SearchNews(ctx context.Context, config Configs.ProviderConfig, topic string, responseReader func(res []byte) ([]string, error)) ([]string, error) {
+func (na *NewsAdapter) SearchNews(ctx context.Context, config Configs.Config, topic string, responseReader func(res []byte) ([]string, error)) ([]string, error) {
 	startTime := time.Now()
-	url := buildNewsUrl(config)
-	headers := map[string]string{"Authorization": fmt.Sprintf("Bearer %s", config.APIKey)}
-
-	resp, err := na.fetchNews(ctx, url, headers, config)
+	url := buildNewsUrl(config, topic)
+	resp, err := na.fetchNews(ctx, url, map[string]string{}, *config.ProviderConfig)
 	if err != nil {
 		return nil, err
 	}

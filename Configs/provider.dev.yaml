@@ -8,6 +8,5 @@ googleProvider:
 
 newsProvider:
   - service: newsapi
-    base_api_url: https://newsapi.org/v2
-    source: /everything
-    query_params: ?q=
+    baseUrl: https://newsapi.org/v2
+    endpoint: /everything

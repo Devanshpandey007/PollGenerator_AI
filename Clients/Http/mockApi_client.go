@@ -13,6 +13,15 @@ type MockApiClient struct {
 	mock.Mock
 }
 
+func (m *MockApiClient) MakePostRequest(ctx context.Context, url string, headers map[string]string, body []byte) (*http.Response, error) {
+	args := m.Called(ctx, url, headers, body)
+	var response *http.Response
+	if args.Get(0) != nil {
+		response = args.Get(0).(*http.Response)
+	}
+	return response, args.Error(1)
+}
+
 // MakeGetRequest is a mock implementation of the MakeGetRequest method.
 func (m *MockApiClient) MakeGetRequest(ctx context.Context, url string, headers map[string]string) (*http.Response, error) {
 	args := m.Called(ctx, url, headers)

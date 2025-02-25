@@ -23,6 +23,7 @@ type DefaultConfig struct {
 	DefaultS3Timeout int
 	MaxTokens        string
 	Temperature      string
+	SearchStartDate  string
 }
 
 // Config holds all the configuration settings.
