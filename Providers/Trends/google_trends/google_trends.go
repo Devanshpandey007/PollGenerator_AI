@@ -4,11 +4,7 @@ import (
 	Adapters "Providers/Adapters/Trends"
 	"Providers/Configs"
 	"Providers/Providers/Trends"
-	"bytes"
 	"context"
-	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"strings"
 )
 
 // GoogleTrendsProvider implement the base provider interface
@@ -76,33 +72,5 @@ func (p *GoogleTrendsProvider) GetConfig() Configs.ProviderConfig {
 
 // ResponseReaderFunc extracts trends from Google Trends HTML response.
 func (p *GoogleTrendsProvider) ResponseReaderFunc(body []byte) ([]string, error) {
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("error parsing Google Trends response: %v", err)
-	}
-
-	var trends []string
-	doc.Find("div.summary-text").Each(func(i int, s *goquery.Selection) {
-		text := strings.TrimSpace(s.Text())
-		if text != "" {
-			// If the text contains commas, split it into individual trends.
-			if strings.Contains(text, ",") {
-				parts := strings.Split(text, ",")
-				for _, part := range parts {
-					part = strings.TrimSpace(part)
-					if part != "" {
-						trends = append(trends, part)
-					}
-				}
-			} else {
-				trends = append(trends, text)
-			}
-		}
-	})
-
-	if len(trends) == 0 {
-		return nil, fmt.Errorf("no trends found in response")
-	}
-
-	return trends, nil
+	return nil, nil
 }

@@ -14,6 +14,7 @@ require (
 	github.com/aws/smithy-go v1.22.3
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 require (

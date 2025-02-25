@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"time"
 
-	na "Providers/Adapters/News"
 	ta "Providers/Adapters/Trends"
 	Api "Providers/Clients/Http"
 	"Providers/Clients/Metric"
@@ -14,7 +14,6 @@ import (
 	"Providers/Common"
 	"Providers/Configs"
 	"Providers/Providers/LLM/openAI"
-	"Providers/Providers/News/news_api"
 	"Providers/Providers/Trends/google_trends"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/spf13/viper"
@@ -25,7 +24,7 @@ import (
 func LoadConfig() (*viper.Viper, *Configs.Config, error) {
 	environment, found := os.LookupEnv("ENV")
 	if !found {
-		environment = "test"
+		environment = "dev"
 	}
 
 	v, err := Configs.NewViper(environment)
@@ -107,17 +106,17 @@ func handleRequest(ctx context.Context) {
 
 	// Initialize adapters
 	trendAdapter := ta.NewTrendsAdapter(Api.NewApiClient(""), metricClient, s3Client)
-	newsAdapter := na.NewNewsAdapter(Api.NewApiClient(newsApiKey), metricClient)
+	//newsAdapter := na.NewNewsAdapter(Api.NewApiClient(newsCfg.APIKey), metricClient)
 
 	// Build complete provider configurations for each provider
 	googleAppConfig := &Configs.Config{
 		ProviderConfig: &googleCfg,
 		DefaultConfig:  appCfg.DefaultConfig,
 	}
-	newsAppConfig := &Configs.Config{
-		ProviderConfig: &newsCfg,
-		DefaultConfig:  appCfg.DefaultConfig,
-	}
+	//newsAppConfig := &Configs.Config{
+	//	ProviderConfig: &newsCfg,
+	//	DefaultConfig:  appCfg.DefaultConfig,
+	//}
 	openAIAAppConfig := &Configs.Config{
 		ProviderConfig: &openAICfg,
 		DefaultConfig:  appCfg.DefaultConfig,
@@ -125,7 +124,7 @@ func handleRequest(ctx context.Context) {
 
 	// Create providers
 	trendProvider := google_trends.NewProvider(googleAppConfig, trendAdapter)
-	newsProvider := news_api.NewProvider(newsAppConfig, newsAdapter)
+	//newsProvider := news_api.NewProvider(newsAppConfig, newsAdapter)
 	// Assume openAI provider uses the same API client (newsApiKey here) if not, adjust accordingly.
 	openAiProvider := openAI.NewProvider(openAIAAppConfig, Api.NewApiClient(""), metricClient)
 
@@ -138,24 +137,32 @@ func handleRequest(ctx context.Context) {
 
 	for _, trend := range trends {
 		Common.LogInfo("Trend", map[string]interface{}{"trend": trend})
-		newsTitles, err := newsProvider.SearchNews(ctx, trend)
+		//// lets spilt the trend and get the title
+		topic := strings.Split(trend, ",")[0]
+		Common.LogInfo("Topic", map[string]interface{}{"topic": topic})
+		//newsTitles, err := newsProvider.SearchNews(ctx, topic)
+		//newsTitles, err := newsProvider.SearchNews(ctx, trend)
+		//if err != nil {
+		//	Common.LogError("Failed to search news; skipping trend", err, map[string]interface{}{"trend": trend})
+		//	continue
+		//}
+		//Common.LogInfo("News titles", map[string]interface{}{
+		//	"trend":      trend,
+		//	"newsTitles": newsTitles,
+		//})
+		//if len(newsTitles) == 0 {
+		//	Common.LogInfo("No news titles found", map[string]interface{}{"trend": trend})
+		//	continue
+		//}
+		//
+		//// Create a context summary by marshalling news titles
+		contextSummaryBytes, err := json.Marshal(trend)
 		if err != nil {
-			Common.LogError("Failed to search news; skipping trend", err, map[string]interface{}{"trend": trend})
+			Common.LogError("Failed to marshal news titles", err, map[string]interface{}{"newsTitles": topic})
 			continue
 		}
-		Common.LogInfo("News titles", map[string]interface{}{
-			"trend":      trend,
-			"newsTitles": newsTitles,
-		})
 
-		// Create a context summary by marshalling news titles
-		contextSummaryBytes, err := json.Marshal(newsTitles)
-		if err != nil {
-			Common.LogError("Failed to marshal news titles", err, map[string]interface{}{"newsTitles": newsTitles})
-			continue
-		}
-
-		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, trend, string(contextSummaryBytes))
+		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, topic, string(contextSummaryBytes))
 		if err != nil {
 			Common.LogError("Failed to generate poll questions", err, map[string]interface{}{
 				"trend":          trend,

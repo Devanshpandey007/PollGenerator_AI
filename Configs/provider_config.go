@@ -21,8 +21,8 @@ type DefaultConfig struct {
 	PartyTableName   string
 	S3Bucket         string
 	DefaultS3Timeout int
-	MaxTokens        string
-	Temperature      string
+	MaxTokens        int
+	Temperature      float64
 	SearchStartDate  string
 }
 

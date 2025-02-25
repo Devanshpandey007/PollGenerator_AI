@@ -208,8 +208,8 @@ func TestOpenAIProvider_makePromptRequest(t *testing.T) {
 					},
 					DefaultConfig: &Configs.DefaultConfig{
 						Environment: "test",
-						MaxTokens:   "100",
-						Temperature: "0.7",
+						MaxTokens:   100,
+						Temperature: 0.7,
 					},
 				},
 				HttpClient:   new(Api.MockApiClient),
@@ -235,8 +235,8 @@ func TestOpenAIProvider_makePromptRequest(t *testing.T) {
 					},
 					DefaultConfig: &Configs.DefaultConfig{
 						Environment: "test",
-						MaxTokens:   "100",
-						Temperature: "0.7",
+						MaxTokens:   100,
+						Temperature: 0.7,
 					},
 				},
 				HttpClient:   new(Api.MockApiClient),
@@ -271,7 +271,41 @@ func TestOpenAIProvider_makePromptRequest(t *testing.T) {
 					"Content-Type":  "application/json",
 				}, mock.Anything).Return(
 					&http.Response{
-						Body:       io.NopCloser(strings.NewReader(`response`)),
+						Body: io.NopCloser(strings.NewReader(`{
+    "id": "chatcmpl-B4ybHIzaCb6nMqZUeEpkvQWM5oGOg",
+    "object": "chat.completion",
+    "created": 1740525959,
+    "model": "gpt-4o-mini-2024-07-18",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "response",
+                "refusal": null
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 130,
+        "completion_tokens": 22,
+        "total_tokens": 152,
+        "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+        }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_709714d124"
+}`)),
 						StatusCode: 200,
 					}, nil)
 			}

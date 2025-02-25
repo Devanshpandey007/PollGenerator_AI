@@ -23,3 +23,11 @@ func RegisterProvider(providerType string, provider IProviderLLM) {
 	defer providersMutex.Unlock()
 	registerProviders[providerType] = provider
 }
+
+type OpenAIResp struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+}

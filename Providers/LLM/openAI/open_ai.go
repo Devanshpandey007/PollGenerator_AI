@@ -97,7 +97,16 @@ func (p *OpenAIProvider) makePromptRequest(ctx context.Context, prompt string) (
 		return "", err
 	}
 
-	return string(responseBody), nil
+	var openAIResp LLM.OpenAIResp
+	if err := json.Unmarshal(responseBody, &openAIResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal openAI response: %w", err)
+	}
+
+	if len(openAIResp.Choices) == 0 {
+		return "", fmt.Errorf("no choices found in openAI response")
+	}
+
+	return openAIResp.Choices[0].Message.Content, nil
 }
 
 func buildPromptUrl(config *Configs.ProviderConfig) string {

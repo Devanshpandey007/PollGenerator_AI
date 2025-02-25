@@ -1,12 +1,12 @@
 package Configs
 
 import (
-	"bytes"
 	"embed"
 	"fmt"
 	"strings"
 
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // Embed all YAML files matching either config.*.yaml or provider.*.yaml,
@@ -15,12 +15,11 @@ import (
 var embeddedFiles embed.FS
 
 func NewViper(environment string) (*viper.Viper, error) {
-
 	v := viper.New()
 	v.SetConfigType("yaml")
 
-	// We'll load multiple files, in a specified order, merging them as we go.
-	// 1) provider.<env>.yaml
+	// Files will be merged; order matters if keys conflict.
+	// Ensure your YAML files use distinct top-level keys.
 	filesToLoad := []string{
 		"config.yaml",
 		fmt.Sprintf("config.%s.yaml", environment),
@@ -29,25 +28,26 @@ func NewViper(environment string) (*viper.Viper, error) {
 	}
 
 	for _, f := range filesToLoad {
-		if data, err := embeddedFiles.ReadFile(f); err == nil {
-			// If the file exists in the embedded FS, merge it
-			if v.ConfigFileUsed() == "" {
-				// No config loaded yet, so read the config fresh
-				if err := v.ReadConfig(bytes.NewReader(data)); err != nil {
-					return nil, fmt.Errorf("failed to load file %s: %w", f, err)
-				}
-			} else {
-				// Already have a config; merge additional files
-				if err := v.MergeConfig(bytes.NewReader(data)); err != nil {
-					return nil, fmt.Errorf("failed to merge file %s: %w", f, err)
-				}
-			}
+		data, err := embeddedFiles.ReadFile(f)
+		if err != nil {
+			// Skip missing files.
+			continue
 		}
-		// If a file is missing, we just skip.
+
+		// Unmarshal YAML data into a temporary map.
+		var fileMap map[string]interface{}
+		if err := yaml.Unmarshal(data, &fileMap); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal file %s: %w", f, err)
+		}
+
+		// Merge the map into viper.
+		if err := v.MergeConfigMap(fileMap); err != nil {
+			return nil, fmt.Errorf("failed to merge file %s: %w", f, err)
+		}
 	}
 
 	// Automatically pick up environment variables,
-	// with dot replaced by underscore in the env var name
+	// replacing dots with underscores.
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 

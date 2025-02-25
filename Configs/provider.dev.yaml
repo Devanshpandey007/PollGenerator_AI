@@ -1,10 +1,10 @@
 googleProvider:
   providerName: google
   service: google-trends
-  baseUrl: https://trends.google.com/trends
-  endpoint: trendingsearches
+  baseUrl: https://trends.google.com
+  endpoint: trending
   timeRange: daily
-  region: NG
+  region: US
 
 newsProvider:
   providerName: newsApi
@@ -18,5 +18,5 @@ openAIProvider:
   service: openapi
   baseUrl: https://api.openai.com/v1
   endpoint: chat/completions
-  model: gpt-3.5-turbo
+  model: gpt-4o-mini
   SecretPath: openai/api
