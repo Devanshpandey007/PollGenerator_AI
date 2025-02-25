@@ -2,18 +2,25 @@ package google_trends
 
 import (
 	Adapters "Providers/Adapters/Trends"
+	Api "Providers/Clients/Http"
+	"Providers/Clients/Metric"
+	"Providers/Clients/S3"
 	"Providers/Configs"
 	"Providers/Providers/Trends"
 	"context"
-	"github.com/spf13/viper"
+	"fmt"
+	"github.com/stretchr/testify/mock"
+	"io"
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 )
 
 func TestGoogleTrendsProvider_GetConfig(t *testing.T) {
 	type fields struct {
 		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
+		Config          *Configs.Config
 		Adapter         *Adapters.TrendsAdapter
 	}
 	tests := []struct {
@@ -21,13 +28,28 @@ func TestGoogleTrendsProvider_GetConfig(t *testing.T) {
 		fields fields
 		want   Configs.ProviderConfig
 	}{
-		// TODO: Add test cases.
+		{
+			name: "TestGoogleTrendsProvider_GetConfig_success",
+			fields: fields{
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "GoogleTrendsProvider",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+			},
+			want: Configs.ProviderConfig{
+				ProviderName: "GoogleTrendsProvider",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &GoogleTrendsProvider{
 				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
+				Config:          tt.fields.Config,
 				Adapter:         tt.fields.Adapter,
 			}
 			if got := p.GetConfig(); !reflect.DeepEqual(got, tt.want) {
@@ -37,113 +59,10 @@ func TestGoogleTrendsProvider_GetConfig(t *testing.T) {
 	}
 }
 
-func TestGoogleTrendsProvider_GetProviderName(t *testing.T) {
-	type fields struct {
-		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
-		Adapter         *Adapters.TrendsAdapter
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   string
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := &GoogleTrendsProvider{
-				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
-				Adapter:         tt.fields.Adapter,
-			}
-			if got := p.GetProviderName(); got != tt.want {
-				t.Errorf("GetProviderName() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGoogleTrendsProvider_GetTrend(t *testing.T) {
-	type fields struct {
-		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
-		Adapter         *Adapters.TrendsAdapter
-	}
-	type args struct {
-		ctx context.Context
-		id  string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := &GoogleTrendsProvider{
-				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
-				Adapter:         tt.fields.Adapter,
-			}
-			got, err := p.GetTrend(tt.args.ctx, tt.args.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetTrend() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("GetTrend() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGoogleTrendsProvider_GetTrendFromRegion(t *testing.T) {
-	type fields struct {
-		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
-		Adapter         *Adapters.TrendsAdapter
-	}
-	type args struct {
-		ctx    context.Context
-		region string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := &GoogleTrendsProvider{
-				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
-				Adapter:         tt.fields.Adapter,
-			}
-			got, err := p.GetTrendFromRegion(tt.args.ctx, tt.args.region)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetTrendFromRegion() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("GetTrendFromRegion() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGoogleTrendsProvider_GetTrends(t *testing.T) {
 	type fields struct {
 		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
+		Config          *Configs.Config
 		Adapter         *Adapters.TrendsAdapter
 	}
 	type args struct {
@@ -156,14 +75,88 @@ func TestGoogleTrendsProvider_GetTrends(t *testing.T) {
 		want    []string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "TestGoogleTrendsProvider_GetTrends_success",
+			fields: fields{
+				Adapter: &Adapters.TrendsAdapter{
+					HttpClient:   new(Api.MockApiClient),
+					S3Client:     new(S3.MockS3Client),
+					MetricClient: new(Metric.MockMetricClient),
+				},
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "GoogleTrendsProvider",
+						BaseURL:      "https://api.example.com",
+						Endpoint:     "trendingsearches",
+						TimeRange:    "daily",
+						Region:       "NG",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			want:    []string{"Super Bowl 2024", "Bitcoin Price Surge", "Ukraine Conflict"},
+			wantErr: false,
+		},
+		{
+			name: "TestGoogleTrendsProvider_GetTrends_error",
+			fields: fields{
+				Adapter: &Adapters.TrendsAdapter{
+					HttpClient:   new(Api.MockApiClient),
+					S3Client:     new(S3.MockS3Client),
+					MetricClient: new(Metric.MockMetricClient),
+				},
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "GoogleTrendsProvider",
+						BaseURL:      "https://api.example.com",
+						Endpoint:     "trendingsearches",
+						TimeRange:    "daily",
+						Region:       "NG",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &GoogleTrendsProvider{
 				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
+				Config:          tt.fields.Config,
 				Adapter:         tt.fields.Adapter,
+			}
+			tt.fields.Adapter.MetricClient.(*Metric.MockMetricClient).On("SendMetric", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			if tt.wantErr {
+				tt.fields.Adapter.HttpClient.(*Api.MockApiClient).On("MakeGetRequest", tt.args.ctx, "https://api.example.com/trendingsearches/daily?geo=NG", map[string]string{}).Return(
+					nil, fmt.Errorf("error"))
+			} else {
+				tt.fields.Adapter.HttpClient.(*Api.MockApiClient).On("MakeGetRequest", tt.args.ctx, "https://api.example.com/trendingsearches/daily?geo=NG", map[string]string{}).Return(
+					&http.Response{
+						Body: io.NopCloser(strings.NewReader(`<html>
+								  <head>
+									<title>Google Trends - Daily Searches</title>
+								  </head>
+								  <body>
+									<div class="summary-text">Super Bowl 2024</div>
+									<div class="summary-text">Bitcoin Price Surge</div>
+									<div class="summary-text">Ukraine Conflict</div>
+								  </body>
+								</html>
+								`)),
+						StatusCode: 200,
+					}, nil)
 			}
 			got, err := p.GetTrends(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
@@ -180,7 +173,7 @@ func TestGoogleTrendsProvider_GetTrends(t *testing.T) {
 func TestGoogleTrendsProvider_ResponseReaderFunc(t *testing.T) {
 	type fields struct {
 		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
+		Config          *Configs.Config
 		Adapter         *Adapters.TrendsAdapter
 	}
 	type args struct {
@@ -199,7 +192,7 @@ func TestGoogleTrendsProvider_ResponseReaderFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &GoogleTrendsProvider{
 				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
+				Config:          tt.fields.Config,
 				Adapter:         tt.fields.Adapter,
 			}
 			got, err := p.ResponseReaderFunc(tt.args.body)
@@ -217,7 +210,7 @@ func TestGoogleTrendsProvider_ResponseReaderFunc(t *testing.T) {
 func TestGoogleTrendsProvider_SaveTrend(t *testing.T) {
 	type fields struct {
 		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
+		Config          *Configs.Config
 		Adapter         *Adapters.TrendsAdapter
 	}
 	type args struct {
@@ -236,7 +229,7 @@ func TestGoogleTrendsProvider_SaveTrend(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &GoogleTrendsProvider{
 				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
+				Config:          tt.fields.Config,
 				Adapter:         tt.fields.Adapter,
 			}
 			if err := p.SaveTrend(tt.args.ctx, tt.args.trend); (err != nil) != tt.wantErr {
@@ -249,7 +242,7 @@ func TestGoogleTrendsProvider_SaveTrend(t *testing.T) {
 func TestGoogleTrendsProvider_SaveTrendForRegion(t *testing.T) {
 	type fields struct {
 		IProviderTrends Trends.IProviderTrends
-		Viper           *viper.Viper
+		Config          *Configs.Config
 		Adapter         *Adapters.TrendsAdapter
 	}
 	type args struct {
@@ -269,7 +262,7 @@ func TestGoogleTrendsProvider_SaveTrendForRegion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &GoogleTrendsProvider{
 				IProviderTrends: tt.fields.IProviderTrends,
-				Config:          tt.fields.Viper,
+				Config:          tt.fields.Config,
 				Adapter:         tt.fields.Adapter,
 			}
 			if err := p.SaveTrendForRegion(tt.args.ctx, tt.args.trend, tt.args.region); (err != nil) != tt.wantErr {
@@ -281,20 +274,41 @@ func TestGoogleTrendsProvider_SaveTrendForRegion(t *testing.T) {
 
 func TestNewProvider(t *testing.T) {
 	type args struct {
-		baseProvider Trends.IProviderTrends
-		viper        *viper.Viper
-		trends       *Adapters.TrendsAdapter
+		config *Configs.Config
+		trends *Adapters.TrendsAdapter
 	}
 	tests := []struct {
 		name string
 		args args
 		want *GoogleTrendsProvider
 	}{
-		// TODO: Add test cases.
+		{
+			name: "TestNewProvider_success",
+			args: args{
+				config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "GoogleTrendsProvider",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+			},
+			want: &GoogleTrendsProvider{
+				Config: &Configs.Config{
+					ProviderConfig: &Configs.ProviderConfig{
+						ProviderName: "GoogleTrendsProvider",
+					},
+					DefaultConfig: &Configs.DefaultConfig{
+						Environment: "test",
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewProvider(tt.args.baseProvider, tt.args.viper, tt.args.trends); !reflect.DeepEqual(got, tt.want) {
+			if got := NewProvider(tt.args.config, tt.args.trends); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewProvider() = %v, want %v", got, tt.want)
 			}
 		})

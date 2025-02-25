@@ -4,9 +4,9 @@ import (
 	Adapters "Providers/Adapters/News"
 	"Providers/Configs"
 	"Providers/Providers/News"
-	"bytes"
 	"context"
-	"github.com/PuerkitoBio/goquery"
+	"encoding/json"
+	"fmt"
 )
 
 // NewsApiProvider implement the base provider interface
@@ -30,7 +30,7 @@ func NewProvider(config *Configs.Config, news *Adapters.NewsAdapter) *NewsApiPro
 }
 
 // SearchNews fetches news data from the API
-func (p *NewsApiProvider) SearchNews(ctx context.Context, query string) ([]string, error) {
+func (p *NewsApiProvider) SearchNews(ctx context.Context, query string) ([]News.NewsArticle, error) {
 	// We should use the newsAdapter to get the news
 	news, err := p.Adapter.SearchNews(ctx, *p.Config, query, p.ResponseReaderFunc)
 	if err != nil {
@@ -40,14 +40,19 @@ func (p *NewsApiProvider) SearchNews(ctx context.Context, query string) ([]strin
 
 }
 
-// ResponseReaderFunc reads the response body and returns the news
-func (p *NewsApiProvider) ResponseReaderFunc(body []byte) ([]string, error) {
-	// Extract news titles
-	var news []string
-	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	doc.Find("title").Each(func(i int, s *goquery.Selection) {
-		news = append(news, s.Text())
-	})
+// ResponseReaderFunc reads the response body and returns the news articles.
+// It extracts the title, description, publishedAt, and content from the JSON response.
+func (p *NewsApiProvider) ResponseReaderFunc(body []byte) ([]News.NewsArticle, error) {
+	// Define a struct that matches the JSON structure of the API response.
+	var apiResponse struct {
+		Status   string             `json:"status"`
+		Articles []News.NewsArticle `json:"articles"`
+	}
 
-	return news, nil
+	// Unmarshal the JSON response.
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return nil, fmt.Errorf("error parsing news API response: %v", err)
+	}
+
+	return apiResponse.Articles, nil
 }

@@ -38,6 +38,9 @@ func (p *GoogleTrendsProvider) GetTrends(ctx context.Context) ([]string, error) 
 	if err != nil {
 		return nil, err
 	}
+	p.Adapter.MetricClient.SendMetric("NumberOfTrends", float64(len(trends)), "Count", map[string]string{
+		"Provider": p.GetProviderName(),
+	})
 	return trends, nil
 }
 
@@ -68,7 +71,7 @@ func (p *GoogleTrendsProvider) SaveTrendForRegion(ctx context.Context, trend str
 
 // GetConfig returns the providers configuration
 func (p *GoogleTrendsProvider) GetConfig() Configs.ProviderConfig {
-	return Configs.ProviderConfig{}
+	return *p.Config.ProviderConfig
 }
 
 // ResponseReaderFunc extracts trends from Google Trends HTML response.
@@ -80,7 +83,21 @@ func (p *GoogleTrendsProvider) ResponseReaderFunc(body []byte) ([]string, error)
 
 	var trends []string
 	doc.Find("div.summary-text").Each(func(i int, s *goquery.Selection) {
-		trends = append(trends, strings.TrimSpace(s.Text()))
+		text := strings.TrimSpace(s.Text())
+		if text != "" {
+			// If the text contains commas, split it into individual trends.
+			if strings.Contains(text, ",") {
+				parts := strings.Split(text, ",")
+				for _, part := range parts {
+					part = strings.TrimSpace(part)
+					if part != "" {
+						trends = append(trends, part)
+					}
+				}
+			} else {
+				trends = append(trends, text)
+			}
+		}
 	})
 
 	if len(trends) == 0 {

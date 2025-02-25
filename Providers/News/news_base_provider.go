@@ -14,8 +14,16 @@ type IProviderNews interface {
 
 	SaveNews(ctx context.Context, news string) error
 	SaveNewsForRegion(ctx context.Context, news string, region string) error
-	SearchNews(ctx context.Context, query string) ([]string, error)
-	ResponseReaderFunc(body []byte) ([]string, error)
+	SearchNews(ctx context.Context, query string) ([]NewsArticle, error)
+	ResponseReaderFunc(body []byte) ([]NewsArticle, error)
+}
+
+// NewsArticle represents a news article
+type NewsArticle struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	PublishedAt string `json:"publishedAt"`
+	Content     string `json:"content"`
 }
 
 var (

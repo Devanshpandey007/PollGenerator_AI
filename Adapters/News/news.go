@@ -5,6 +5,7 @@ import (
 	"Providers/Clients/Metric"
 	"Providers/Common"
 	"Providers/Configs"
+	"Providers/Providers/News"
 	"context"
 	"fmt"
 	"io"
@@ -76,7 +77,7 @@ func buildNewsUrl(config Configs.Config, topic string) string {
 // @param topic string
 //
 // @return []byte, error
-func (na *NewsAdapter) SearchNews(ctx context.Context, config Configs.Config, topic string, responseReader func(res []byte) ([]string, error)) ([]string, error) {
+func (na *NewsAdapter) SearchNews(ctx context.Context, config Configs.Config, topic string, responseReader func(res []byte) ([]News.NewsArticle, error)) ([]News.NewsArticle, error) {
 	startTime := time.Now()
 	url := buildNewsUrl(config, topic)
 	resp, err := na.fetchNews(ctx, url, map[string]string{}, *config.ProviderConfig)
