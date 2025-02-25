@@ -9,6 +9,7 @@ type ProviderConfig struct {
 	QueryParams  string
 	Region       string
 	SecretPath   string
+	Model        string
 }
 
 type DefaultConfig struct {
@@ -20,6 +21,8 @@ type DefaultConfig struct {
 	PartyTableName   string
 	S3Bucket         string
 	DefaultS3Timeout int
+	MaxTokens        string
+	Temperature      string
 }
 
 // Config holds all the configuration settings.

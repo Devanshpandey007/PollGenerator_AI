@@ -1,6 +1,7 @@
 package Api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -32,6 +33,34 @@ func NewApiClient(apiKey string) *ApiClient {
 func (a *ApiClient) MakeGetRequest(ctx context.Context, url string, headers map[string]string) (*http.Response, error) {
 	// Create a new HTTP request with the provided context
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Add headers (including the API key)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.APIKey))
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	// Execute the HTTP request
+	resp, err := a.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %v", err)
+	}
+
+	// Check if response status is OK (200)
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error: status_code %d, body: %s", resp.StatusCode, string(body))
+	}
+	return resp, nil
+}
+
+// MakePostRequest sends a POST request to the specified URL with the given body and headers.
+func (a *ApiClient) MakePostRequest(ctx context.Context, url string, headers map[string]string, body []byte) (*http.Response, error) {
+	// Create a new HTTP request with the provided context and body
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, io.NopCloser(bytes.NewReader(body)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}

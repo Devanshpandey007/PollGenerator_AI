@@ -8,6 +8,7 @@ import (
 	"Providers/Clients/S3"
 	"Providers/Common"
 	"Providers/Configs"
+	"Providers/Providers/LLM/openAI"
 	"Providers/Providers/News/news_api"
 	"Providers/Providers/Trends/google_trends"
 	"context"
@@ -63,6 +64,7 @@ func handleRequest(ctx context.Context) {
 	// Create the providers
 	trendProvider := google_trends.NewProvider(config, trendAdapter)
 	newsProvider := news_api.NewProvider(config, newsAdapter)
+	openAiProvider := openAI.NewProvider(config, Api.NewApiClient(secrets), metricClient)
 
 	trends, err := trendProvider.GetTrends(ctx)
 	if err != nil {
@@ -82,6 +84,18 @@ func handleRequest(ctx context.Context) {
 
 		// Create a context summary by joining article titles.
 		contextSummary := strings.Join(newsTitles, " ")
+		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, trend, contextSummary)
+		if err != nil {
+			Common.LogError("Failed to generate poll questions", err, map[string]interface{}{
+				"trend":          trend,
+				"contextSummary": contextSummary,
+			})
+			return
+		}
+		Common.LogInfo("Poll questions", map[string]interface{}{
+			"trend":         trend,
+			"pollQuestions": pollQuestions,
+		})
 
 	}
 }

@@ -9,6 +9,7 @@ import (
 // ApiClientInterface defines the contract for API-related operations.
 type ApiClientInterface interface {
 	MakeGetRequest(ctx context.Context, url string, headers map[string]string) (*http.Response, error) // Fixed to return []byte
-	SetTimeout(timeout time.Duration)                                                                  // Add method to allow setting timeout
-	SetClient(client HTTPClient)                                                                       // Add method to allow injecting custom HTTP client
+	MakePostRequest(ctx context.Context, url string, headers map[string]string, body []byte) (*http.Response, error)
+	SetTimeout(timeout time.Duration) // Add method to allow setting timeout
+	SetClient(client HTTPClient)      // Add method to allow injecting custom HTTP client
 }
