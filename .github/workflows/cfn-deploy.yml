@@ -50,17 +50,17 @@ jobs:
                 id: set-vars
                 run: |
                     if [[ "${{ inputs.build-type }}" == "api" ]]; then
-                    TEMPLATE_PATH="./Backend/Infrastructure/Api/template.yaml"
-                    OUTPUT_PATH="./Backend/Infrastructure/Api/packaged-template.yaml"
+                    TEMPLATE_PATH="./Infrastructure/api/template.yaml"
+                    OUTPUT_PATH="./PollAIBackend/Infrastructure/api/packaged-template.yaml"
                     STACK_NAME="p2p-bets-poll-ai-api-${{ inputs.environment }}"
                     elif [[ "${{ inputs.build-type }}" == "infrastructure" ]]; then
-                    TEMPLATE_PATH="./Backend/Infrastructure/template.yaml"
-                    OUTPUT_PATH="./Backend/Infrastructure/packaged-template.yaml"
+                    TEMPLATE_PATH="./Infrastructure/template.yaml"
+                    OUTPUT_PATH="./PollAIBackend/Infrastructure/packaged-template.yaml"
                     STACK_NAME="p2p-bets-poll-ai-infra-${{ inputs.environment }}"
                     elif [[ "${{ inputs.build-type }}" == "lambda" ]]; then
-                    TEMPLATE_PATH="./Backend/Infrastructure/lambda/template.yaml"
-                    OUTPUT_PATH="./Backend/Infrastructure/lambda/packaged-template.yaml"
-                    STACK_NAME="p2p-bets-poll-ai-application-${{ inputs.environment }}"
+                    TEMPLATE_PATH="./Infrastructure/lambda/template.yaml"
+                    OUTPUT_PATH="./PollAIBackend/Infrastructure/lambda/packaged-template.yaml"
+                    STACK_NAME="p2p-bets-poll-ai-lambda-${{ inputs.environment }}"
                     fi
 
                     echo "template_path=${TEMPLATE_PATH}" >> $GITHUB_OUTPUT
@@ -138,8 +138,8 @@ jobs:
             -   name: Upload CloudFormation templates to S3
                 if: ${{ success() && (inputs.build-type == 'infrastructure' || inputs.build-type == 'api') }}
                 run: |
-                    for template in $(find ./Backend/Infrastructure -name '*.yaml'); do
-                        s3_key="${{ inputs.environment }}/${template#./Backend/}"
+                    for template in $(find ./Infrastructure -name '*.yaml'); do
+                        s3_key="${{ inputs.environment }}/${template#./PollAIBackend/}"
                         aws s3 cp "$template" "s3://p2p-bets-poll-artifacts-${{ inputs.environment }}/$s3_key"
                     done
             
@@ -174,7 +174,7 @@ jobs:
 
             # Wait for Infrastructure Stack
             -   name: Wait for Infrastructure Stack
-                if: inputs.build-type == 'application'
+                if: inputs.build-type == 'lambda'
                 run: |
                     echo "Waiting for infrastructure stack exports..."
                     sleep 30  # Add a small delay to ensure exports are available

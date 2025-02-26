@@ -103,7 +103,7 @@ jobs:
     if: always() && needs.deploy-infra-and-networking.result == 'success'
     uses: ./.github/workflows/cfn-deploy.yml
     with:
-      build-type: 'application'
+      build-type: 'lambda'
       environment: ${{ matrix.environment }}
       region: ${{ matrix.region }}
       application-tag: ${{ github.sha }}
