@@ -140,7 +140,8 @@ jobs:
                 run: |
                     for template in $(find ./Infrastructure -name '*.yaml'); do
                         s3_key="${{ inputs.environment }}/${template#./PollAIBackend/}"
-                        aws s3 cp "$template" "s3://p2p-bets-poll-artifacts-${{ inputs.environment }}/$s3_key"
+                        # aws s3 cp "$template" "s3://p2p-bets-poll-artifacts-${{ inputs.environment }}/$s3_key"
+                        aws s3 cp "$template" "s3://p2p-bets-artifacts-${{ inputs.environment }}/$s3_key"
                     done
             
             # Execute change set
