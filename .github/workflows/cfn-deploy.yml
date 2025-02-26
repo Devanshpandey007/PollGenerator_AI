@@ -1,0 +1,186 @@
+# File: .github/workflows/cfn-deploy.yml
+name: Reusable CFN Deploy Workflow
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      region:
+        required: true
+        type: string
+      build-type:
+        required: true
+        type: string
+      ec2-key-pair:
+        required: false
+        type: string
+      ec2-instance-type:
+        required: false
+        type: string
+      ec2-ami:
+        required: false
+        type: string
+      application-tag:
+        required: false
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID: {}
+      AWS_SECRET_ACCESS_KEY: {}
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v3
+    
+            -   name: Configure AWS Credentials
+                uses: aws-actions/configure-aws-credentials@v3
+                with:
+                  role-to-assume: arn:aws:iam::864899853095:role/GitHubActionsDeployRole
+                  aws-region: ${{ inputs.region }}
+            
+            # First, determine template paths and stack name
+            -   name: Set deployment variables
+                id: set-vars
+                run: |
+                    if [[ "${{ inputs.build-type }}" == "api" ]]; then
+                    TEMPLATE_PATH="./Backend/Infrastructure/Api/template.yaml"
+                    OUTPUT_PATH="./Backend/Infrastructure/Api/packaged-template.yaml"
+                    STACK_NAME="p2p-bets-poll-ai-api-${{ inputs.environment }}"
+                    elif [[ "${{ inputs.build-type }}" == "infrastructure" ]]; then
+                    TEMPLATE_PATH="./Backend/Infrastructure/template.yaml"
+                    OUTPUT_PATH="./Backend/Infrastructure/packaged-template.yaml"
+                    STACK_NAME="p2p-bets-poll-ai-infra-${{ inputs.environment }}"
+                    elif [[ "${{ inputs.build-type }}" == "lambda" ]]; then
+                    TEMPLATE_PATH="./Backend/Infrastructure/lambda/template.yaml"
+                    OUTPUT_PATH="./Backend/Infrastructure/lambda/packaged-template.yaml"
+                    STACK_NAME="p2p-bets-poll-ai-application-${{ inputs.environment }}"
+                    fi
+
+                    echo "template_path=${TEMPLATE_PATH}" >> $GITHUB_OUTPUT
+                    echo "output_path=${OUTPUT_PATH}" >> $GITHUB_OUTPUT
+                    echo "stack_name=${STACK_NAME}" >> $GITHUB_OUTPUT
+        
+            -   name: Create Change Set
+                id: create-change-set
+                run: |
+                    STACK_NAME="${{ steps.set-vars.outputs.stack_name }}"
+                    CHANGE_SET_NAME="${STACK_NAME}-change-set-$(date +%Y%m%d-%H%M%S)"
+
+                    #check stack status
+                    STACK_INFO=$(aws cloudformation describe-stacks --stack-name ${STACK_NAME} 2>/dev/null) && \
+                    STACK_STATUS=$(echo "${STACK_INFO}" | jq -r '.Stacks[0].StackStatus')
+
+                    if [ -n "$STACK_INFO" ]; then
+                        case "${STACK_STATUS}" in
+                            "ROLLBACK_COMPLETE")
+                                echo "Stack is in ROLLBACK_COMPLETE state. Deleting stack before recreating..."
+                                aws cloudformation delete-stack --stack-name "${STACK_NAME}"
+                                aws cloudformation wait stack-delete-complete --stack-name "${STACK_NAME}"
+                                CREATE_OR_UPDATE="CREATE"
+                                ;;
+                            "CREATE_COMPLETE"|"UPDATE_COMPLETE")
+                                CREATE_OR_UPDATE="UPDATE"
+                                ;;
+                            *)
+                                CREATE_OR_UPDATE="CREATE"
+                                ;;
+                        esac
+                    else
+                        CREATE_OR_UPDATE="CREATE"
+                    fi
+
+                    #create change set 
+                    aws cloudformation create-change-set \
+                        --stack-name "${STACK_NAME}" \
+                        --change-set-name "${CHANGE_SET_NAME}" \
+                        --change-set-type "${CREATE_OR_UPDATE}" \
+                        --template-body file://${{ steps.set-vars.outputs.template_path }} \
+                        --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+                        --parameters \
+                            ParameterKey=EnvironmentName,ParameterValue=${{ inputs.environment }} \
+                            ParameterKey=S3BucketName,ParameterValue=p2p-bets-poll-ai-artifacts-${{ inputs.environment }} \
+                            $([[ "${{ inputs.build-type }}" == "infrastructure" ]] && echo "ParameterKey=Region,ParameterValue=${{ inputs.region }}") \
+                            $([[ ! -z "${{ inputs.application-tag }}" ]] && echo "ParameterKey=ImageTag,ParameterValue=${{ inputs.application-tag }}") \
+                            --tags Key=expiration-date,Value=NEVER
+
+                    echo "change_set_name=${CHANGE_SET_NAME}" >> $GITHUB_OUTPUT
+                    echo "create_or_update=${CREATE_OR_UPDATE}" >> $GITHUB_OUTPUT
+
+            # Wait for change set creation and review
+            -   name: Wait for and Review Change Set
+                run: |
+                    aws cloudformation wait change-set-create-complete \
+                        --stack-name ${{ steps.set-vars.outputs.stack_name }} \
+                        --change-set-name ${{ steps.create-change-set.outputs.change_set_name }}
+
+                    echo "Reviewing Change Set:"
+                    aws cloudformation describe-change-set \
+                        --stack-name ${{ steps.set-vars.outputs.stack_name }} \
+                        --change-set-name ${{ steps.create-change-set.outputs.change_set_name }}
+
+            # Only if change set is approved, proceed with packaging and deployment
+            -   name: Package CloudFormation template
+                if: success()
+                run: |
+                    aws cloudformation package \
+                        --template-file ${{ steps.set-vars.outputs.template_path }} \
+                        --s3-bucket p2p-bets-poll-artifacts-${{ inputs.environment }} \
+                        --output-template-file ${{ steps.set-vars.outputs.output_path }}
+
+            # Upload templates to S3 (if needed)
+            -   name: Upload CloudFormation templates to S3
+                if: ${{ success() && (inputs.build-type == 'infrastructure' || inputs.build-type == 'api') }}
+                run: |
+                    for template in $(find ./Backend/Infrastructure -name '*.yaml'); do
+                        s3_key="${{ inputs.environment }}/${template#./Backend/}"
+                        aws s3 cp "$template" "s3://p2p-bets-poll-artifacts-${{ inputs.environment }}/$s3_key"
+                    done
+            
+            # Execute change set
+            -   name: Execute Change Set
+                if: success()
+                run: |
+                    aws cloudformation execute-change-set \
+                    --stack-name ${{ steps.set-vars.outputs.stack_name }} \
+                    --change-set-name ${{ steps.create-change-set.outputs.change_set_name }}
+
+                    # Wait and check for errors
+                    if [[ "${{ steps.create-change-set.outputs.create_or_update }}" == "CREATE" ]]; then
+                    if ! aws cloudformation wait stack-create-complete --stack-name ${{ steps.set-vars.outputs.stack_name }}; then
+                        echo "Stack creation failed. Fetching stack events for debugging:"
+                        aws cloudformation describe-stack-events \
+                        --stack-name ${{ steps.set-vars.outputs.stack_name }} \
+                        --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+                        --output table
+                        exit 1
+                    fi
+                    else
+                    if ! aws cloudformation wait stack-update-complete --stack-name ${{ steps.set-vars.outputs.stack_name }}; then
+                        echo "Stack update failed. Fetching stack events for debugging:"
+                        aws cloudformation describe-stack-events \
+                        --stack-name ${{ steps.set-vars.outputs.stack_name }} \
+                        --query 'StackEvents[?ResourceStatus==`UPDATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+                        --output table
+                        exit 1
+                    fi
+                    fi
+
+            # Wait for Infrastructure Stack
+            -   name: Wait for Infrastructure Stack
+                if: inputs.build-type == 'application'
+                run: |
+                    echo "Waiting for infrastructure stack exports..."
+                    sleep 30  # Add a small delay to ensure exports are available
+
+
+
+            
+
+            

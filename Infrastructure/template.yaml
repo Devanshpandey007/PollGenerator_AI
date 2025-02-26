@@ -21,7 +21,19 @@ Parameters:
     Description: Image tag for the handler
     Default: 'latest'
 
+  LambdaSecurityGroupId:
+    Type: String
+    Description: ID of the security group for Lambda functions
+
 Resources:
+  Network:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Infrastructure/Network/template.yaml
+      Parameters:
+        RootStackName: !Ref AWS::StackName
+        AvailabilityZone: !Sub '${Region}a'
+        
   ApiGateway:
     Type: AWS::CloudFormation::Stack
     Properties:

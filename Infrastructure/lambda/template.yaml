@@ -11,7 +11,21 @@ Parameters:
   EnvironmentName:
     Type: String
     Description: Name of the target environment (e.g., dev or prod)
-
+  S3BucketName:
+    Type: String
+    Description: S3 bucket name
+    Default: p2p-bets-artifacts
+  ImageTag:
+    Type: String
+    Description: Image tag for the handler
+    Default: 'latest'
+  # Networking
+  LambdaSecurityGroupId:
+    Type: String
+    Description: ID of the security group for Lambda functions
+  PrivateSubnetId:
+    Type: String
+    Description: ID of the private subnet for Lambda functions
 
 Resources:
   # IAM Role for Lambda Functions
