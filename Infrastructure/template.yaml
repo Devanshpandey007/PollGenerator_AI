@@ -4,6 +4,10 @@ Description: Multiple SAM applications with shared resources.
 
 
 Parameters:
+  InfrastructureStackName:
+    Type: String
+    Description: Name of the infrastructure stack
+    Default: 'p2p-poll-ai'
   EnvironmentName:
     Type: String
     Description: Name of the target environment
@@ -11,6 +15,11 @@ Parameters:
     Type: String
     Description: S3 bucket name
     Default: p2p-bets-artifacts
+
+  ImageTag:
+    Type: String
+    Description: Image tag for the handler
+    Default: 'latest'
 
 Resources:
   ApiGateway:
@@ -30,3 +39,10 @@ Resources:
       Parameters:
         RootStackName: !Ref 'AWS::StackName'
         EnvironmentName: !Ref EnvironmentName
+        S3BucketName: !Ref S3BucketName
+        ImageTag: !Ref ImageTag
+        # Networking
+        PrivateSubnetId:
+          Fn::ImportValue: !Sub "${InfrastructureStackName}-${EnvironmentName}-PrivateSubnetId"
+        LambdaSecurityGroupId:
+          Fn::ImportValue: !Sub "${InfrastructureStackName}-${EnvironmentName}-LambdaSecurityGroupId"
