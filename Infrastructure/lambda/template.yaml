@@ -41,18 +41,6 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                  - dynamodb:Query
-                  - dynamodb:UpdateItem
-                  - dynamodb:DescribeTable
-                  - dynamodb:Scan
-                Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PartyDynamoTableName}'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PartyDynamoTableName}/index/*'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${EventDynamoTableName}'
-              - Effect: Allow
-                Action:
                   - s3:GetObject
                 Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
               - Effect: Allow
@@ -73,13 +61,13 @@ Resources:
                   - ec2:DeleteNetworkInterface
                 Resource: '*'
 
-  PollServiceCron:
+  PollService:
     Type: AWS::Lambda::Function
     Properties:
       Role: !GetAtt LambdaExecutionRole.Arn
-      FunctionName: !Sub '${RootStackName}-PollServiceCron-${EnvironmentName}'
+      FunctionName: !Sub '${RootStackName}-PollService-${EnvironmentName}'
       Code:
-        ImageUri: !Sub '864899853095.dkr.ecr.${AWS::Region}.amazonaws.com/p2p-bets-image-${EnvironmentName}:cron_pollservice_${EnvironmentName}_${CronImageTag}'
+        ImageUri: !Sub '864899853095.dkr.ecr.${AWS::Region}.amazonaws.com/p2p-bets-image-${EnvironmentName}:pollservice_${EnvironmentName}_${ImageTag}'
       PackageType: Image
       Timeout: 90
       VpcConfig:
@@ -91,28 +79,10 @@ Resources:
         Variables:
           ENV: !Ref EnvironmentName
           REGION: !Ref AWS::Region
-          EVENT_DYNAMO_TABLE_NAME: !Ref EventDynamoTableName
-          PARTY_DYNAMO_TABLE_NAME: !Ref PartyDynamoTableName
-          DYNAMO_ENDPOINT: !Ref DynamoEndpoint
-          ARN_SNS_TOPIC: !Ref ARNSnsTopic
-          CACHE_TIME: "1800"
 
-  # EventBridge Rule to Trigger Lambda Every Thursday
-  PollServiceCronSchedule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub '${RootStackName}-PollServiceCronSchedule-${EnvironmentName}'
-      ScheduleExpression: 'cron(0 12 ? * 5 *)'  # Runs every Thursday at 12:00 UTC
-      State: ENABLED
-      Targets:
-        - Arn: !GetAtt PollServiceCron.Arn
-          Id: "PollServiceCronTarget"
-
-  # Permission for EventBridge to Invoke Lambda
-  LambdaInvokePermissionForPollServiceCron:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref PollServiceCron
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt PollServiceCronSchedule.Arn
+Outputs:
+  PollServiceArn:
+    Description: ARN of the PollService Lambda function
+    Value: !GetAtt PollService.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-PollServiceArn'

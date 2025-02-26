@@ -3,9 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/spf13/viper"
 
 	ta "Providers/Adapters/Trends"
 	Api "Providers/Clients/Http"
@@ -13,17 +18,15 @@ import (
 	"Providers/Clients/S3"
 	"Providers/Common"
 	"Providers/Configs"
-	"Providers/Providers/LLM/openAI"
-	"Providers/Providers/Trends/google_trends"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/spf13/viper"
+	openAIProvider "Providers/Providers/LLM/openAI"
+	googleTrends "Providers/Providers/Trends/google_trends"
 )
 
-// LoadConfig loads configuration via Viper and returns the Viper instance
-// along with an app-wide configuration struct.
+// LoadConfig initializes Viper, loads your default config, and prepares
+// a Configs.Config struct. Simplified error handling below.
 func LoadConfig() (*viper.Viper, *Configs.Config, error) {
-	environment, found := os.LookupEnv("ENV")
-	if !found {
+	environment := os.Getenv("ENV")
+	if environment == "" {
 		environment = "dev"
 	}
 
@@ -34,11 +37,10 @@ func LoadConfig() (*viper.Viper, *Configs.Config, error) {
 
 	var defaultCfg Configs.DefaultConfig
 	if err := v.UnmarshalKey("DefaultConfig", &defaultCfg); err != nil {
+		// Log, but continue with partially loaded config
 		Common.LogError("Failed to unmarshal default config", err, nil)
-		// Continue even if default config fails to load completely.
 	}
 
-	// Initialize an empty provider config. We'll fill each provider config individually.
 	appConfig := &Configs.Config{
 		ProviderConfig: &Configs.ProviderConfig{},
 		DefaultConfig:  &defaultCfg,
@@ -47,99 +49,79 @@ func LoadConfig() (*viper.Viper, *Configs.Config, error) {
 	return v, appConfig, nil
 }
 
-// loadProviderConfig unmarshals a provider configuration from Viper for a given key.
+// loadProviderConfig extracts a ProviderConfig by key. If missing or invalid,
+// returns an error.
 func loadProviderConfig(v *viper.Viper, key string) (Configs.ProviderConfig, error) {
 	var cfg Configs.ProviderConfig
 	err := v.UnmarshalKey(key, &cfg)
 	return cfg, err
 }
 
-func handleRequest(ctx context.Context) {
-	// Load configuration
+// handleRequest is your main AWS Lambda entry point.
+func handleRequest(ctx context.Context, _ events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// 1. Load config
 	v, appCfg, err := LoadConfig()
 	if err != nil {
 		Common.LogError("Failed to load config", err, nil)
-		return
+		return serverError(err), err
 	}
 
-	// Unmarshal provider configurations
+	// 2. Unmarshal each provider’s config
 	googleCfg, err := loadProviderConfig(v, "googleProvider")
 	if err != nil {
-		Common.LogError("Failed to unmarshal google trends config", err, nil)
-		return
-	}
-
-	newsCfg, err := loadProviderConfig(v, "newsProvider")
-	if err != nil {
-		Common.LogError("Failed to unmarshal news config", err, nil)
-		return
+		return logAndReturnError("Failed to unmarshal google trends config", err)
 	}
 
 	openAICfg, err := loadProviderConfig(v, "openAIProvider")
 	if err != nil {
-		Common.LogError("Failed to unmarshal openAI config", err, nil)
-		return
+		return logAndReturnError("Failed to unmarshal openAI config", err)
 	}
-	// Retrieve secrets
+
+	// 3. Retrieve secrets (OpenAI key, etc.)
 	openAiApiKey, err := GetSecrets(openAICfg.SecretPath, appCfg.DefaultConfig.Region)
 	if err != nil {
-		Common.LogError("Failed to retrieve openApiKey", err, nil)
-		return
+		return logAndReturnError("Failed to retrieve openApiKey", err)
 	}
 	openAICfg.APIKey = openAiApiKey
 
-	// Retrieve secrets (for example, the API key for newsProvider)
-	newsApiKey, err := GetSecrets(newsCfg.SecretPath, appCfg.DefaultConfig.Region)
-	if err != nil {
-		Common.LogError("Failed to retrieve newsApiKey", err, nil)
-		return
-	}
-	newsCfg.APIKey = newsApiKey
-
-	// Initialize shared clients
+	// 4. Initialize shared clients
 	metricClient, _ := Metric.NewMetricClient("PollService", appCfg.DefaultConfig.Region)
-	s3Client, err := S3.NewS3Client(appCfg.DefaultConfig.S3Bucket, appCfg.DefaultConfig.Region, time.Duration(appCfg.DefaultConfig.DefaultS3Timeout)*time.Second)
+	s3Client, err := S3.NewS3Client(
+		appCfg.DefaultConfig.S3Bucket,
+		appCfg.DefaultConfig.Region,
+		time.Duration(appCfg.DefaultConfig.DefaultS3Timeout)*time.Second,
+	)
 	if err != nil {
-		Common.LogError("Failed to initialize S3 client", err, nil)
-		return
+		return logAndReturnError("Failed to initialize S3 client", err)
 	}
 
-	// Initialize adapters
+	// 5. Initialize your adapters & providers
 	trendAdapter := ta.NewTrendsAdapter(Api.NewApiClient(""), metricClient, s3Client)
 	//newsAdapter := na.NewNewsAdapter(Api.NewApiClient(newsCfg.APIKey), metricClient)
 
-	// Build complete provider configurations for each provider
 	googleAppConfig := &Configs.Config{
 		ProviderConfig: &googleCfg,
 		DefaultConfig:  appCfg.DefaultConfig,
 	}
-	//newsAppConfig := &Configs.Config{
-	//	ProviderConfig: &newsCfg,
-	//	DefaultConfig:  appCfg.DefaultConfig,
-	//}
-	openAIAAppConfig := &Configs.Config{
+	openAIAppConfig := &Configs.Config{
 		ProviderConfig: &openAICfg,
 		DefaultConfig:  appCfg.DefaultConfig,
 	}
 
-	// Create providers
-	trendProvider := google_trends.NewProvider(googleAppConfig, trendAdapter)
-	//newsProvider := news_api.NewProvider(newsAppConfig, newsAdapter)
-	// Assume openAI provider uses the same API client (newsApiKey here) if not, adjust accordingly.
-	openAiProvider := openAI.NewProvider(openAIAAppConfig, Api.NewApiClient(""), metricClient)
+	trendProvider := googleTrends.NewProvider(googleAppConfig, trendAdapter)
+	openAiProvider := openAIProvider.NewProvider(openAIAppConfig, Api.NewApiClient(""), metricClient)
 
-	// Get trends from Google Trends
+	// 6. Get trends from Google Trends
 	trends, err := trendProvider.GetTrends(ctx)
 	if err != nil {
-		Common.LogError("Failed to get trends", err, nil)
-		return
+		return logAndReturnError("Failed to get trends", err)
 	}
 
+	var questions []string
+
 	for _, trend := range trends {
-		Common.LogInfo("Trend", map[string]interface{}{"trend": trend})
-		//// lets spilt the trend and get the title
+		// If the trend has multiple comma parts, we only take the first as "topic".
 		topic := strings.Split(trend, ",")[0]
-		Common.LogInfo("Topic", map[string]interface{}{"topic": topic})
 		//newsTitles, err := newsProvider.SearchNews(ctx, topic)
 		//newsTitles, err := newsProvider.SearchNews(ctx, trend)
 		//if err != nil {
@@ -156,27 +138,67 @@ func handleRequest(ctx context.Context) {
 		//}
 		//
 		//// Create a context summary by marshalling news titles
-		contextSummaryBytes, err := json.Marshal(trend)
+		Common.LogInfo("Processing Trend", map[string]interface{}{
+			"original": trend,
+			"topic":    topic,
+		})
+
+		// Create a “context summary” from the trend itself (in future, from news titles)
+		contextSummary, err := json.Marshal(trend)
 		if err != nil {
-			Common.LogError("Failed to marshal news titles", err, map[string]interface{}{"newsTitles": topic})
+			Common.LogError("Failed to marshal trend context", err, nil)
 			continue
 		}
 
-		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, topic, string(contextSummaryBytes))
+		pollQuestions, err := openAiProvider.GeneratePollQuestions(ctx, topic, string(contextSummary))
 		if err != nil {
 			Common.LogError("Failed to generate poll questions", err, map[string]interface{}{
 				"trend":          trend,
-				"contextSummary": string(contextSummaryBytes),
+				"contextSummary": string(contextSummary),
 			})
 			continue
 		}
-		Common.LogInfo("Poll questions", map[string]interface{}{
+
+		Common.LogInfo("Poll questions generated", map[string]interface{}{
 			"trend":         trend,
 			"pollQuestions": pollQuestions,
 		})
+		questions = append(questions, pollQuestions)
 	}
+
+	// 7. Combine final results & return
+	questionsString := strings.Join(questions, ", ")
+	return successResponse(questionsString), nil
 }
 
 func main() {
 	lambda.Start(handleRequest)
+}
+
+/* ---------------------------------------------------
+   Helper Functions
+--------------------------------------------------- */
+
+// successResponse returns a 200 with a JSON body
+func successResponse(msg string) events.APIGatewayProxyResponse {
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       fmt.Sprintf(`{"message":"%s"}`, msg),
+		Headers:    map[string]string{"Content-Type": "application/json"},
+	}
+}
+
+// serverError returns a 500 with a JSON body
+func serverError(err error) events.APIGatewayProxyResponse {
+	return events.APIGatewayProxyResponse{
+		StatusCode: 500,
+		Body:       fmt.Sprintf(`{"error":"%s"}`, err.Error()),
+		Headers:    map[string]string{"Content-Type": "application/json"},
+	}
+}
+
+// logAndReturnError logs the error and returns a standardized 500 response
+func logAndReturnError(logMessage string, err error) (events.APIGatewayProxyResponse, error) {
+	Common.LogError(logMessage, err, nil)
+	return serverError(err), err
 }
