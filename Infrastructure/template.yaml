@@ -54,7 +54,5 @@ Resources:
         S3BucketName: !Ref S3BucketName
         ImageTag: !Ref ImageTag
         # Networking
-        PrivateSubnetId:
-          Fn::ImportValue:  !Sub "${InfrastructureStackName}-${EnvironmentName}-PrivateSubnetId"
-        LambdaSecurityGroupId:
-         Fn::ImportValue:  !Sub "${InfrastructureStackName}-${EnvironmentName}-LambdaSecurityGroupId"
+        PrivateSubnetId: !GetAtt Network.Outputs.PrivateSubnetId
+        LambdaSecurityGroupId: !GetAtt Network.Outputs.LambdaSecurityGroupId
