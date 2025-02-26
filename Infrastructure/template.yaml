@@ -15,6 +15,10 @@ Parameters:
     Type: String
     Description: S3 bucket name
     Default: p2p-bets-artifacts
+  Region:
+    Type: String
+    Description: AWS region
+    Default: us-west-2
 
   ImageTag:
     Type: String
