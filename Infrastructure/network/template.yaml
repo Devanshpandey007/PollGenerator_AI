@@ -5,6 +5,7 @@ Parameters:
   RootStackName:
     Type: String
     Description: Name of the root stack
+    Default: 'p2p-poll-ai'
   AvailabilityZone:
     Type: String
     Description: Availability zone
