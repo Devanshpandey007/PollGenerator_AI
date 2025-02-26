@@ -55,6 +55,6 @@ Resources:
         ImageTag: !Ref ImageTag
         # Networking
         PrivateSubnetId:
-          Fn::ImportValue: !Sub "${InfrastructureStackName}-${EnvironmentName}-PrivateSubnetId"
+          Fn::ImportValue:  !Sub "${InfrastructureStackName}-${EnvironmentName}-PrivateSubnetId"
         LambdaSecurityGroupId:
-          Fn::ImportValue: !Sub "${InfrastructureStackName}-${EnvironmentName}-LambdaSecurityGroupId"
+         Fn::ImportValue:  !Sub "${InfrastructureStackName}-${EnvironmentName}-LambdaSecurityGroupId"
