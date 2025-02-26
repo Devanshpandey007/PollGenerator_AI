@@ -31,7 +31,7 @@ Resources:
     Properties:
       TemplateURL: !Sub https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Infrastructure/Network/template.yaml
       Parameters:
-        RootStackName: !Ref AWS::StackName
+        RootStackName: !Sub "${InfrastructureStackName}-${EnvironmentName}"
         AvailabilityZone: !Sub '${Region}a'
         
   ApiGateway:
