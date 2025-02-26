@@ -106,7 +106,6 @@ jobs:
                         --parameters \
                             ParameterKey=EnvironmentName,ParameterValue=${{ inputs.environment }} \
                             ParameterKey=S3BucketName,ParameterValue=p2p-bets-poll-ai-artifacts-${{ inputs.environment }} \
-                            ParameterKey=InfrastructureNam,ParameterValue=${{ inputs.region }} \
                             $([[ "${{ inputs.build-type }}" == "infrastructure" ]] && echo "ParameterKey=Region,ParameterValue=${{ inputs.region }}") \
                             $([[ ! -z "${{ inputs.application-tag }}" ]] && echo "ParameterKey=ImageTag,ParameterValue=${{ inputs.application-tag }}") \
                             --tags Key=expiration-date,Value=NEVER
