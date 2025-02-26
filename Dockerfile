@@ -1,5 +1,5 @@
 # Use the official Golang image as the base for the build stage
-FROM golang:1.23.6 AS build
+FROM golang:1.23.2-alpine AS build
 
 
 # Set the working directory for the build stage
