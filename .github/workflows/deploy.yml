@@ -61,12 +61,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - environment: Production
-            region: us-east-1
-          - environment: Staging
-            region: us-east-2
-          - environment: Development
+          - branch: Development
+            environment: dev
             region: us-west-2
+            application-name: WebSocketHandler
+          - branch: Staging
+            environment: stage
+            region: us-east-2
+            application-name: WebSocketHandler
+          - branch: Production 
+            environment: prod
+            region: us-east-1
+            application-name: WebSocketHandler
   
   deploy-infra-and-networking:
     needs: [build]
