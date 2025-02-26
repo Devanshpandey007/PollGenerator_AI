@@ -25,10 +25,6 @@ Parameters:
     Description: Image tag for the handler
     Default: 'latest'
 
-  LambdaSecurityGroupId:
-    Type: String
-    Description: ID of the security group for Lambda functions
-
 Resources:
   Network:
     Type: AWS::CloudFormation::Stack
