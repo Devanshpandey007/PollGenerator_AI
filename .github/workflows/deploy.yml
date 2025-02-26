@@ -67,3 +67,78 @@ jobs:
             region: us-east-2
           - environment: Development
             region: us-west-2
+  
+  deploy-infra-and-networking:
+    needs: [build]
+    uses: ./.github/workflows/cfn-deploy.yml
+    with:
+      build-type: 'infrastructure'
+      environment: ${{ matrix.environment }}
+      region: ${{ matrix.region }}
+      branch: ${{ matrix.branch }}
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - branch: Development
+            environment: dev
+            region: us-west-2
+          - branch: Staging
+            environment: stage
+            region: us-east-2
+          - branch: Production
+            environment: prod
+            region: us-east-1
+
+  deploy-lambda-infra:
+    needs: [deploy-infra-and-networking, build]
+    if: always() && needs.deploy-infra-and-networking.result == 'success'
+    uses: ./.github/workflows/cfn-deploy.yml
+    with:
+      build-type: 'application'
+      environment: ${{ matrix.environment }}
+      region: ${{ matrix.region }}
+      application-tag: ${{ github.sha }}
+      branch: ${{ matrix.branch }}
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - branch: Development
+            environment: dev
+            region: us-west-2
+          - branch: Staging
+            environment: stage
+            region: us-east-2
+          - branch: Production
+            environment: prod
+            region: us-east-1
+  
+  deploy-api:
+    needs: deploy-lambda-infra
+    uses: ./.github/workflows/cfn-deploy.yml
+    with:
+      build-type: 'api'
+      environment: ${{ matrix.environment }}
+      region: ${{ matrix.region }}
+      branch: ${{ matrix.branch }}
+      application-tag: ${{ github.sha }}
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+        matrix:
+            include:
+              - branch: Development
+                environment: dev
+                region: us-west-2
+              - branch: Staging
+                environment: stage
+                region: us-east-2
+              - branch: Production
+                environment: prod
+                region: us-east-1
