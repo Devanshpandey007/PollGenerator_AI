@@ -29,7 +29,7 @@ Resources:
   Network:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${S3BucketName}.s3.${Region}.amazonaws.com/${EnvironmentName}/./Infrastructure/network/template.yaml
+      TemplateURL: !Sub https://${S3BucketName}.s3.${Region}.amazonaws.com/${EnvironmentName}/./Infrastructure/network/poll_network_template.yaml 
       Parameters:
         RootStackName: !Sub "${InfrastructureStackName}-${EnvironmentName}"
         AvailabilityZone: !Sub '${Region}a'
