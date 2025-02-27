@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: "Poll Service for P2P Bets"
-Transform: AWS::Serverless-2016-10-31
 
 Parameters:
   EnvironmentName:
@@ -16,12 +15,6 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref EnvironmentName
-      PollFunctionPermission:
-        Type: AWS::Lambda::Permission
-        Properties:
-          Action: 'lambda:InvokeFunction'
-          Principal: 'apigateway.amazonaws.com'
-          FunctionName: !Ref PollFunctionArn
       DefinitionBody:
         swagger: "2.0"
         info:
@@ -44,3 +37,9 @@ Resources:
           Empty:
             type: "object"
             title: "Empty Schema"
+  PollFunctionPermission:
+  Type: AWS::Lambda::Permission
+  Properties:
+    Action: 'lambda:InvokeFunction'
+    Principal: 'apigateway.amazonaws.com'
+    FunctionName: !Ref PollFunctionArn
