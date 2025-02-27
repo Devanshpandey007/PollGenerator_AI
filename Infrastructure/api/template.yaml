@@ -1,3 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: "Poll Service for P2P Bets"
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "Name of the target environment (e.g., dev or prod)"
+  PollFunctionArn:
+    Type: String
+    Description: "ARN of the Poll Lambda function"
+
 Resources:
   PollApiGateway:
     Type: AWS::Serverless::Api
