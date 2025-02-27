@@ -4,7 +4,7 @@ googleProvider:
   baseUrl: https://trends.google.com
   endpoint: trending
   timeRange: daily
-  region: US
+  region: NG
 
 newsProvider:
   providerName: newsApi
