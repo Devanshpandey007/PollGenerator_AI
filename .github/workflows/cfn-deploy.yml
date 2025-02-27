@@ -173,11 +173,11 @@ jobs:
                     fi
 
             # Wait for Infrastructure Stack
-            -   name: Wait for Infrastructure Stack
-                if: inputs.build-type == 'lambda'
-                run: |
-                    echo "Waiting for infrastructure stack exports..."
-                    sleep 30  # Add a small delay to ensure exports are available
+            # -   name: Wait for Infrastructure Stack
+            #     if: inputs.build-type == 'lambda'
+            #     run: |
+            #         echo "Waiting for infrastructure stack exports..."
+            #         sleep 30  # Add a small delay to ensure exports are available
 
 
 
