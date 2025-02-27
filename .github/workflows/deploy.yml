@@ -91,12 +91,12 @@ jobs:
           - branch: Development
             environment: dev
             region: us-west-2
-          - branch: Staging
-            environment: stage
-            region: us-east-2
-          - branch: Production
-            environment: prod
-            region: us-east-1
+          # - branch: Staging
+          #   environment: stage
+          #   region: us-east-2
+          # - branch: Production
+          #   environment: prod
+          #   region: us-east-1
 
   deploy-lambda-infra:
     needs: [deploy-infra-and-networking, build]
@@ -117,12 +117,12 @@ jobs:
           - branch: Development
             environment: dev
             region: us-west-2
-          - branch: Staging
-            environment: stage
-            region: us-east-2
-          - branch: Production
-            environment: prod
-            region: us-east-1
+          # - branch: Staging
+          #   environment: stage
+          #   region: us-east-2
+          # - branch: Production
+          #   environment: prod
+          #   region: us-east-1
   
   deploy-api:
     needs: deploy-lambda-infra
@@ -142,9 +142,9 @@ jobs:
               - branch: Development
                 environment: dev
                 region: us-west-2
-              - branch: Staging
-                environment: stage
-                region: us-east-2
-              - branch: Production
-                environment: prod
-                region: us-east-1
+              # - branch: Staging
+              #   environment: stage
+              #   region: us-east-2
+              # - branch: Production
+              #   environment: prod
+              #   region: us-east-1
