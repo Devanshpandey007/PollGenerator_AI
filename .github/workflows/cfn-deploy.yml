@@ -105,7 +105,7 @@ jobs:
                         --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
                         --parameters \
                             ParameterKey=EnvironmentName,ParameterValue=${{ inputs.environment }} \
-                            ParameterKey=S3BucketName,ParameterValue=p2p-bets-artifacts-${{ inputs.environment }} \
+                            ParameterKey=S3BucketName,ParameterValue=p2p-bets-poll-artifacts-${{ inputs.environment }} \
                             $([[ "${{ inputs.build-type }}" == "infrastructure" ]] && echo "ParameterKey=Region,ParameterValue=${{ inputs.region }}") \
                             $([[ ! -z "${{ inputs.application-tag }}" ]] && echo "ParameterKey=ImageTag,ParameterValue=${{ inputs.application-tag }}") \
                             --tags Key=expiration-date,Value=NEVER
@@ -131,7 +131,7 @@ jobs:
                 run: |
                     aws cloudformation package \
                         --template-file ${{ steps.set-vars.outputs.template_path }} \
-                        --s3-bucket p2p-bets-artifacts-${{ inputs.environment }} \
+                        --s3-bucket p2p-bets-poll-artifacts-${{ inputs.environment }} \
                         --output-template-file ${{ steps.set-vars.outputs.output_path }}
 
             # Upload templates to S3 (if needed)
@@ -139,9 +139,8 @@ jobs:
                 if: ${{ success() && (inputs.build-type == 'infrastructure' || inputs.build-type == 'api') }}
                 run: |
                     for template in $(find ./Infrastructure -name '*.yaml'); do
-                        s3_key="${{ inputs.environment }}/${template#./PollAIBackend/}"
-                        # aws s3 cp "$template" "s3://p2p-bets-artifacts-${{ inputs.environment }}/$s3_key"
-                        aws s3 cp "$template" "s3://p2p-bets-artifacts-${{ inputs.environment }}/$s3_key"
+                        s3_key="${{ inputs.environment }}/${template#./Poll/}"
+                        aws s3 cp "$template" "s3://p2p-bets-poll-artifacts-${{ inputs.environment }}/$s3_key"
                     done
             
             # Execute change set

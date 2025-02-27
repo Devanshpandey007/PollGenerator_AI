@@ -14,7 +14,7 @@ Parameters:
   S3BucketName:
     Type: String
     Description: S3 bucket name
-    Default: p2p-bets-artifacts
+    Default: p2p-bets-poll-artifacts
   Region:
     Type: String
     Description: AWS region
@@ -29,7 +29,7 @@ Resources:
   Network:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Infrastructure/Network/template.yaml
+      TemplateURL: !Sub https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Infrastructure/network/template.yaml
       Parameters:
         RootStackName: !Sub "${InfrastructureStackName}-${EnvironmentName}"
         AvailabilityZone: !Sub '${Region}a'
@@ -37,7 +37,7 @@ Resources:
   ApiGateway:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Infrastructure/Poll/Api/template.yaml'
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Infrastructure/api/template.yaml'
       Parameters:
         EnvironmentName: !Ref EnvironmentName
         PollFunctionArn: !Sub '${EnvironmentName}-PollFunctionArn'
@@ -45,7 +45,7 @@ Resources:
   PollFunction:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/Service/Poll/Lambda/template.yaml'
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${S3BucketName}/${EnvironmentName}/lambda/template.yaml'
       Parameters:
         RootStackName: !Ref 'AWS::StackName'
         EnvironmentName: !Ref EnvironmentName

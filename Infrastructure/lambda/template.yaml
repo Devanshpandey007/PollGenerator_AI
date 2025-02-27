@@ -14,7 +14,7 @@ Parameters:
   S3BucketName:
     Type: String
     Description: S3 bucket name
-    Default: p2p-bets-artifacts
+    Default: p2p-bets-poll-artifacts
   ImageTag:
     Type: String
     Description: Image tag for the handler
