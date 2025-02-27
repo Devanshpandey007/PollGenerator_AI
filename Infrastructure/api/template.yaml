@@ -16,6 +16,12 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref EnvironmentName
+      PollFunctionPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+          Action: 'lambda:InvokeFunction'
+          Principal: 'apigateway.amazonaws.com'
+          FunctionName: !Ref PollFunctionArn
       DefinitionBody:
         swagger: "2.0"
         info:
