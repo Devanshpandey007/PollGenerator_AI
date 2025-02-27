@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
 Description: "Poll Service for P2P Bets"
 
 Parameters:
@@ -37,6 +38,7 @@ Resources:
           Empty:
             type: "object"
             title: "Empty Schema"
+  
   PollFunctionPermission:
   Type: AWS::Lambda::Permission
   Properties:
