@@ -74,7 +74,7 @@ jobs:
             region: us-east-1
             application-name: PollServiceApplication
   
-  deploy-infra-and-networking:
+  deploy-infra-networking-lambda-apigw:
     needs: [build]
     uses: ./.github/workflows/cfn-deploy.yml
     with:
