@@ -18,5 +18,5 @@ openAIProvider:
   service: openapi
   baseUrl: https://api.openai.com/v1
   endpoint: chat/completions
-  model: gpt-o1-mini
+  model: gpt-4o-mini
   SecretPath: openai/api
