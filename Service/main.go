@@ -170,8 +170,11 @@ func handleRequest(ctx context.Context, _ events.APIGatewayProxyRequest) (events
 	}
 
 	// 7. Combine final results & return
-	questionsString := strings.Join(questions, ", ")
-	return successResponse(questionsString), nil
+	questionsString, err := json.Marshal(questions)
+	if err != nil {
+		return logAndReturnError("Failed to marshal questions", err)
+	}
+	return successResponse(string(questionsString)), nil
 }
 
 func main() {
