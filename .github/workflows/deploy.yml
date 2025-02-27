@@ -53,7 +53,7 @@ jobs:
         branch: ${{ github.ref_name }}
         environment: ${{ matrix.environment }}
         region:  ${{ matrix.region }}
-        application-name: P2P-BETS-POLL-AI
+        application-name: p2p-bets-poll
         application-tag: ${{ github.sha }}
     permissions:
       id-token: write

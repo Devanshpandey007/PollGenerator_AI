@@ -52,15 +52,15 @@ jobs:
                     if [[ "${{ inputs.build-type }}" == "api" ]]; then
                     TEMPLATE_PATH="./Infrastructure/api/template.yaml"
                     OUTPUT_PATH="./Infrastructure/api/packaged-template.yaml"
-                    STACK_NAME="p2p-bets-poll-ai-api-${{ inputs.environment }}"
+                    STACK_NAME="p2p-bets-poll-api-${{ inputs.environment }}"
                     elif [[ "${{ inputs.build-type }}" == "infrastructure" ]]; then
                     TEMPLATE_PATH="./Infrastructure/template.yaml"
                     OUTPUT_PATH="./Infrastructure/packaged-template.yaml"
-                    STACK_NAME="p2p-bets-poll-ai-infra-${{ inputs.environment }}"
+                    STACK_NAME="p2p-bets-poll-infra-${{ inputs.environment }}"
                     elif [[ "${{ inputs.build-type }}" == "lambda" ]]; then
                     TEMPLATE_PATH="./Infrastructure/lambda/template.yaml"
                     OUTPUT_PATH="./Infrastructure/lambda/packaged-template.yaml"
-                    STACK_NAME="p2p-bets-poll-ai-lambda-${{ inputs.environment }}"
+                    STACK_NAME="p2p-bets-poll-lambda-${{ inputs.environment }}"
                     fi
 
                     echo "template_path=${TEMPLATE_PATH}" >> $GITHUB_OUTPUT
