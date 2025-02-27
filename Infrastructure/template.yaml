@@ -40,7 +40,7 @@ Resources:
       TemplateURL: !Sub https://${S3BucketName}.s3.${Region}.amazonaws.com/${EnvironmentName}/./Infrastructure/api/template.yaml
       Parameters:
         EnvironmentName: !Ref EnvironmentName
-        PollFunctionArn: !GetAtt PollFunction.Outputs.PollFunctionArn
+        PollFunctionArn: !GetAtt PollFunction.Outputs.PollServiceArn
 
   PollFunction:
     Type: AWS::CloudFormation::Stack
