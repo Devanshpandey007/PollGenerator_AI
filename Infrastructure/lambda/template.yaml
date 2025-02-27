@@ -88,7 +88,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       FunctionName: !Sub '${RootStackName}-PollService-${EnvironmentName}'
       Code:
-        ImageUri: !Sub '864899853095.dkr.ecr.${AWS::Region}.amazonaws.com/p2p-bets-image-${EnvironmentName}:pollservice_${EnvironmentName}_${ImageTag}'
+        ImageUri: !Sub '864899853095.dkr.ecr.${AWS::Region}.amazonaws.com/p2p-bets-image-${EnvironmentName}:p2p-bets-poll_${EnvironmentName}_${ImageTag}'
       PackageType: Image
       Timeout: 90
       VpcConfig:
