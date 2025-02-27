@@ -64,15 +64,15 @@ jobs:
           - branch: Development
             environment: dev
             region: us-west-2
-            application-name: WebSocketHandler
+            application-name: PollServiceApplication
           - branch: Staging
             environment: stage
             region: us-east-2
-            application-name: WebSocketHandler
+            application-name: PollServiceApplication
           - branch: Production 
             environment: prod
             region: us-east-1
-            application-name: WebSocketHandler
+            application-name: PollServiceApplication
   
   deploy-infra-and-networking:
     needs: [build]
@@ -82,6 +82,7 @@ jobs:
       environment: ${{ matrix.environment }}
       region: ${{ matrix.region }}
       branch: ${{ matrix.branch }}
+      application-tag: ${{ github.sha }}
     permissions:
       id-token: write
       contents: read
