@@ -189,7 +189,7 @@ func main() {
 func successResponse(msg string) events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
-		Body:       fmt.Sprintf(`{"message":"%s"}`, msg),
+		Body:       msg,
 		Headers:    map[string]string{"Content-Type": "application/json"},
 	}
 }
