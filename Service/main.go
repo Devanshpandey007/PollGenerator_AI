@@ -170,7 +170,7 @@ func handleRequest(ctx context.Context, _ events.APIGatewayProxyRequest) (events
 	}
 
 	// 7. Combine final results & return
-	questionsString, err := json.Marshal(questions)
+	questionsString, err := json.Marshal(map[string]interface{}{"poll": questions, "trends": trends, "timestamp": time.Now().Unix(), "count": len(questions)})
 	if err != nil {
 		return logAndReturnError("Failed to marshal questions", err)
 	}

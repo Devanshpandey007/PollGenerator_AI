@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 )
 
 type OpenAIProvider struct {
@@ -46,7 +47,9 @@ func (p *OpenAIProvider) GetProviderName() string {
 
 // GeneratePollQuestions generates poll questions based on the topic and context summary
 func (p *OpenAIProvider) GeneratePollQuestions(ctx context.Context, topic string, contextSummary string) (string, error) {
-	prompt := fmt.Sprintf(Generator.PredictionMarketPrompt, topic, contextSummary)
+	// get the date in month, day and year format (e.g., "January 1, 2022")
+	today := time.Now().Format("January 2, 2006")
+	prompt := fmt.Sprintf(Generator.PredictionMarketPrompt, topic, contextSummary, today)
 	response, err := p.makePromptRequest(ctx, prompt)
 	if err != nil {
 		Common.LogError("Error generating poll questions", err, nil)
