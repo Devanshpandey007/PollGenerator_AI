@@ -9,6 +9,7 @@ import requests
 import random
 from .utils.fetch_keywords import fetch_google_trends
 from .utils.scrapper import extract_articles_from_punchng
+
 from rest_framework import generics
 
 class TrendingTopicsAPIView(APIView):
