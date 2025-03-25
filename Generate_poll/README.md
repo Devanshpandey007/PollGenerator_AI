@@ -54,7 +54,6 @@ DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
 ### **5. Run Migrations**
 ```sh 
-python manage.py makemigrations # This will create migration files for model changes
 python manage.py migrate # Apply the changes to the database
 ```
 
@@ -91,9 +90,9 @@ This will start the project inside a container.
    ```sh
    docker-compose down
    ```
-3. **Remove the Docker Container:**
+3. **Check docker logs:**
    ```sh
-   docker-compose logs -f
+   docker logs -f <container_id>
    ```
 
 ## Additional Notes

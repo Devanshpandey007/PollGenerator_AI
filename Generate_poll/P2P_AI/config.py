@@ -23,6 +23,7 @@ class Config:
     SLEEP_MAX = 7
     ARTICLE_COUNT = 5  
     ELEMENT_CLASS_NAME = "mZ3RIc"
+    EXTRACTED_TOPICS_COUNT = 10
 
 
 config = Config()  
