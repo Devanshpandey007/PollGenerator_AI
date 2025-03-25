@@ -3,10 +3,11 @@
 ## Description
 P2P_AI is a project aimed at fetching the top trending topics from Google Trends and extracting relevant articles from popular Nigerian websites like PunchNG. It then generates polls using LLMs (Large Language Models) based on the extracted data.
 
-## Technologies Used
+## Prerequisites
 - **Docker**
 - **Django**
 - **SQLite3**
+- **Python 3.10**
 
 ## Features
 - Fetches trending topics from Google Trends.
@@ -31,15 +32,30 @@ venv\Scripts\activate  # On Windows
 
 ### **3. Install Dependencies**
 ```sh
-pip install -r requirements.txt
+pip install --upgrade pip setuptools wheel  
+pip install -r requirements.txt --use-pep517
 ```
 
 ### **4. Set Up Environment Variables**
-Create a `.env` file and add necessary environment variables required by the project.
+Create a `.env` file in the project's root directory and add the following required environment variables:
+
+```ini
+# Django Secret Key (Used for security and cryptographic signing)
+SECRET_KEY=your-secure-random-key  
+
+# GPT API Key (Used for interacting with GPT models)
+GPT_KEY=your-gpt-api-key  
+
+# Django Debug Mode (Set to False in Production)
+DJANGO_DEBUG=True  
+
+# Django Allowed Hosts (Comma-separated, e.g., "localhost,127.0.0.1,example.com")
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
 ### **5. Run Migrations**
-```sh
-python manage.py migrate
+```sh 
+python manage.py makemigrations # This will create migration files for model changes
+python manage.py migrate # Apply the changes to the database
 ```
 
 ### **6. Start the Server**
@@ -53,26 +69,32 @@ The project exposes the following API endpoints:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/topics/` | GET/POST | Fetch trending topics and view topics |
-| `/articles/` | GET/POST | Extract trending articles and view articles |
-| `/generate-polls/` | POST | Generate polls using LLMs |
-| `/custom-topics/` | POST | Manually post topic, title,content and url |
-| `/get-polls/<str:topic>/` | GET | Fetch polls for a particular topic |
+| `api/topics/` | GET/POST | Fetch trending topics and view topics |
+| `api/articles/` | GET/POST | Extract trending articles and view articles |
+| `api/generate-polls/` | POST | Generate polls using LLMs |
+| `api/custom-topics/` | POST | Manually post topic, title,content and url |
+| `api/get-polls/<str:topic>/` | GET | Fetch polls for a particular topic |
 
 ## Database
 The project uses **SQLite3** as its database.
 
 ## Docker Support
 If you want to use Docker, follow these steps:
-1. **Build the Docker Image:**
+
+1. **Build and run the Docker Container:**
    ```sh
-   docker build -t p2p_ai .
-   ```
-2. **Run the Docker Container:**
-   ```sh
-   docker-compose up -d
+   docker-compose up -d --build
    ```
 This will start the project inside a container.
+
+2. **Stop the Docker Container:**
+   ```sh
+   docker-compose down
+   ```
+3. **Remove the Docker Container:**
+   ```sh
+   docker-compose logs -f
+   ```
 
 ## Additional Notes
 - Ensure you have the correct `.env` file before running the project.

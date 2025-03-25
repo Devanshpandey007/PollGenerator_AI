@@ -1,5 +1,3 @@
-
-
 import time
 import tempfile
 import random
@@ -23,8 +21,7 @@ def setup_driver(headless=True):
     """Set up Selenium WebDriver with options."""
     user_data_dir = tempfile.mkdtemp()
     chrome_options = Options()
-    if headless:
-        chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument(f"user-agent={get_random_user_agent()}")
@@ -55,7 +52,7 @@ def extract_from_url(url):
     print(f"Extracted from: {url}")
     return extracted_articles
 
-def extract_articles_from_punchng(topic):
+def extract_articles_from_provider(topic):
     """Fetch and extract articles from PunchNG for a given topic."""
     if not topic:
         print("Error: Topic cannot be empty.")

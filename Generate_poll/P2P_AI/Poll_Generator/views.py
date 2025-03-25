@@ -1,4 +1,5 @@
 import time
+import concurrent.futures
 from django.shortcuts import render
 from .models import *
 from rest_framework.views import APIView
@@ -8,14 +9,14 @@ from .serializers import *
 import requests
 import random
 from .utils.fetch_keywords import fetch_google_trends
-from .utils.scrapper import extract_articles_from_punchng
-
+from .utils.scrapper import extract_articles_from_provider
+from django.db import transaction
 from rest_framework import generics
 
 class TrendingTopicsAPIView(APIView):
     def get(self, request):
         try:
-            trending_topics = Topics.objects.all().order_by('-last_updated')
+            trending_topics = Topics.objects.all().order_by('-date_created')
 
             serializer = TopicSerializer(trending_topics, many=True)
 
@@ -47,23 +48,80 @@ class TrendingTopicsAPIView(APIView):
 
 
 
-class ArticlesAPIViews(APIView):
+# class ArticlesAPIViews(APIView):
+#     def get(self, request):
+#         try:
+#             fetched_content = Articles.objects.all()
+#             serializer = ArticleSerializer(fetched_content, many=True)
+#             if serializer.data:
+#                 return Response(serializer.data, status=status.HTTP_200_OK)
+#             else:
+#                 return Response({"error": "No articles found"}, status=status.HTTP_404_NOT_FOUND)
+#         except Exception as e:
+#             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+#     def post(self, request):
+#         try:
+#             added_articles = []
+            
+#             latest_topics = Topics.objects.order_by('-id')[:10]
+
+#             new_topics = [
+#                 topic for topic in latest_topics
+#                 if not Articles.objects.filter(topic=topic).exists()
+#             ]
+
+#             if not new_topics:
+#                 return Response({"error": "No new topics to process."}, status=status.HTTP_404_NOT_FOUND)
+        
+#             for topic in new_topics:
+#                 articles = extract_articles_from_provider(topic.topic_name)
+
+#                 if not articles:
+#                     continue  
+
+#                 topic_instance = Topics.objects.get(topic_name=topic.topic_name)
+
+#                 for article in articles:
+#                     if Articles.objects.filter(title=article['title']).exists() or Articles.objects.filter(url=article['url']).exists():
+#                         continue  
+
+#                     new_article = Articles.objects.create(
+#                         topic=topic_instance, 
+#                         title=article['title'],
+#                         url=article['url'],
+#                         content=article['content'],
+#                         date_last_updated=article['date_last_updated']
+#                     )
+
+#                     article_data = ArticleSerializer(new_article).data
+#                     added_articles.append(article_data)
+
+#             return Response({"message": added_articles}, status=status.HTTP_201_CREATED)
+
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ArticlesAPIView(APIView):
+    """
+    API view for managing articles: retrieving all articles (GET) and adding new ones (POST).
+    """
+
     def get(self, request):
         try:
-            fetched_content = Articles.objects.all()
-            serializer = ArticleSerializer(fetched_content, many=True)
+            articles = Articles.objects.all()
+            serializer = ArticleSerializer(articles, many=True)
             if serializer.data:
                 return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response({"error": "No articles found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "No articles found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         try:
             added_articles = []
-            
             latest_topics = Topics.objects.order_by('-id')[:10]
 
             new_topics = [
@@ -73,26 +131,30 @@ class ArticlesAPIViews(APIView):
 
             if not new_topics:
                 return Response({"error": "No new topics to process."}, status=status.HTTP_404_NOT_FOUND)
-        
-            for topic in new_topics:
-                articles = extract_articles_from_punchng(topic.topic_name)
 
+           
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                articles_list = list(executor.map(extract_articles_from_provider, [topic.topic_name for topic in new_topics]))
+
+      
+            for topic, articles in zip(new_topics, articles_list):
                 if not articles:
-                    continue  
+                    continue
 
                 topic_instance = Topics.objects.get(topic_name=topic.topic_name)
 
                 for article in articles:
                     if Articles.objects.filter(title=article['title']).exists() or Articles.objects.filter(url=article['url']).exists():
-                        continue  
+                        continue
 
-                    new_article = Articles.objects.create(
-                        topic=topic_instance, 
-                        title=article['title'],
-                        url=article['url'],
-                        content=article['content'],
-                        date_last_updated=article['date_last_updated']
-                    )
+                    with transaction.atomic():  
+                        new_article = Articles.objects.create(
+                            topic=topic_instance,
+                            title=article['title'],
+                            url=article['url'],
+                            content=article['content'],
+                            date_last_updated=article['date_last_updated']
+                        )
 
                     article_data = ArticleSerializer(new_article).data
                     added_articles.append(article_data)
@@ -101,9 +163,6 @@ class ArticlesAPIViews(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
 
 
 
