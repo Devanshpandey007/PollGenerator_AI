@@ -60,3 +60,4 @@ websocket-client==1.8.0
 wsproto==1.2.0
 tenacity==9.0.0
 wheel>=0.38.0
+psycopg2-binary

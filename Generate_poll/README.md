@@ -52,7 +52,18 @@ DJANGO_DEBUG=True
 # Django Allowed Hosts (Comma-separated, e.g., "localhost,127.0.0.1,example.com")
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
+# PostgreSQL Database Configuration
+POSTGRES_DB=mydatabase # your database name
+POSTGRES_USER=myuser # your username
+POSTGRES_PASSWORD=mypassword # your password
+POSTGRES_HOST=localhost #set "POSTGRES_HOST=db" in Production
+POSTGRES_PORT=5432
+DJANGO_ENV=deveopment #set it to production when you are ready to deploy
+```
+
+
 ### **5. Run Migrations**
+
 ```sh 
 python manage.py migrate # Apply the changes to the database
 ```
