@@ -1,7 +1,0 @@
-DefaultConfig:
-  MaxTokens: 100
-  Temperature: 0.7
-  Region: "us-west-2"
-  S3Bucket: "my-bucket"
-  DefaultS3Timeout: 10
-  SearchStartDate: "2025-02-23"
