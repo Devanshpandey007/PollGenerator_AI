@@ -1,0 +1,29 @@
+# Byte-compiled / packaged files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env
+*.env
+
+# SQLite database
+db.sqlite3
+
+
+
+# Logs
+*.log
+logs/
+
+
+
+# Docker files
+*.pid
+*.tar
+docker-compose.override.yml
+
+
+
+
